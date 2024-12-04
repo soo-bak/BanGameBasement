@@ -22,7 +22,7 @@ const entries = [
 	},
 	{
     title: "스시 마스터",
-		filename: "SUSHI MASTER.html",
+		filename: "SUSHI-MASTER.html",
     description: "마스터-초밥왕에 도전하세요! (약간의 운과 약간의 전략, 약간의 컨트롤이 필요합니다.)",
 		author: "필근",
 	},
