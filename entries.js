@@ -28,7 +28,7 @@ const entries = [
 	},
   {
     title: "사업부가 너무 많아",
-		filename: "ThereIsTooManyBsps.html",
+		filename: "ThereAreTooManyBsps.html",
     description: "사업부 운영 시뮬레이션",
 		author: "유원",
 	},
@@ -46,7 +46,7 @@ const entries = [
   },
   {
     title: "슛돌이 김토토",
-    filename: "BeatTheChimpanzees.html",
+    filename: "K-TOTO_Soccer.html",
     description: "16강부터 모든 경기, 당신의 운과 배짱을 시험하세요!\n승부를 예측하고 당신의 배팅이 시작되면 경기 시작 휘슬이 울립니다!\n치열하게 펼쳐지는 경기를 두 눈으로 지켜보세요!\n",
     author: "필근",
   },
