@@ -2,7 +2,7 @@
 <html lang="en">
     <head>
         <meta charset="UTF-8" />
-        <title>Semibasement HTML games</title>
+        <title>BanGameBasement</title>
 
         <!-- Icons -->
 
@@ -45,9 +45,13 @@
 
         <!-- Android theme color -->
         <meta name="theme-color" content="#ffffff" />
-        <!-- <link rel="mask-icon" href="./meta/safari-pinned-tab.svg" color="#ffa500" /> -->
+        <link rel="mask-icon" href="./meta/safari-pinned-tab.svg" color="#ffa500" />
 
         <!-- END Icons -->
+
+        <meta property="og:title" content="BanGameBasement" />
+        <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous" />
+
         <style>
             .jumbotron {
                 text-align: center;
@@ -90,10 +94,10 @@
             <div class="card">
                 <div class="card-body">
                     <div class="jumbotron">
-                        <img src="./meta/one-html-page-logo.png" alt="BanGameBasement" class="logo" />
+                        <img src="https://soo-bak.github.io/BanGameBasement/meta/one-html-page-logo.png" alt="BanGameBasement" class="logo" />
                         <hr class="my-4" />
                         <p>
-                            재밌는 게임들 by 유원 필근
+                            반겜굳
                         </p>
                     </div>
                     <div class="input-group flex-nowrap">
@@ -208,14 +212,6 @@
                     linkButton.appendChild(linkButtonNode);
                     linkButton.setAttribute("target", "_blank");
                     group1.appendChild(linkButton);
-
-                    // Source Code Link
-                    const sourceCodeButton = document.createElement("a");
-                    const sourceCodeNode = document.createTextNode("Source");
-                    sourceCodeButton.className = "btn btn-secondary btn-md";
-                    sourceCodeButton.appendChild(sourceCodeNode);
-                    sourceCodeButton.setAttribute("target", "_blank");
-                    group1.appendChild(sourceCodeButton);
 
                     // github button
                     if (github) {
