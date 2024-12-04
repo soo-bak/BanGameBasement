@@ -14,11 +14,19 @@
  */
 
 const entries = [
+  {
+		title: "침팬지를 이겨라",
+		filename: "BeatTheChimpanzees.html",
+		description: "실시간 주식 차트 게임",
+		author: "유원",
+
+	},
 	{
 		title: "LCK 시뮬레이터",
 		filename: "LCK-simulator.html",
 		description: "LCK 시뮬레이터 게임",
 		author: "유원",
+
 	},
 	{
     title: "스시 마스터",

@@ -1,0 +1,623 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>실시간 주식 차트 게임</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .chart-container {
+            margin-bottom: 20px;
+            position: relative;
+        }
+        canvas {
+            border: 1px solid black;
+        }
+        .game-container {
+            display: flex;
+            gap: 20px;
+        }
+        .player-panel {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #f8f8f8;
+            position: relative;
+        }
+        .ai-panel {
+            flex: 1;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            background-color: #fff;
+            position: relative;
+        }
+        .player-info {
+            margin: 10px 0;
+        }
+        .info-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 1.2em;
+            color: #333;
+        }
+        .bankrupt {
+            color: red;
+            font-weight: bold;
+        }
+        button {
+            margin: 5px;
+            padding: 8px 15px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            cursor: pointer;
+        }
+        .long-btn {
+            background-color: #ffefef;
+        }
+        .short-btn {
+            background-color: #eef6ff;
+        }
+        button:hover {
+            filter: brightness(0.95);
+        }
+        .current-price {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+        .position-long {
+            color: #ff3333;
+            font-weight: bold;
+        }
+        .position-short {
+            color: #3333ff;
+            font-weight: bold;
+        }
+        .profit-positive {
+            color: #ff3333;
+        }
+        .profit-negative {
+            color: #3333ff;
+        }
+        @keyframes floatUp {
+            0% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+            100% {
+                transform: translateY(-100px);
+                opacity: 0;
+            }
+        }
+        .profit-animation {
+            position: absolute;
+            top: 0;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 20px;
+            font-weight: bold;
+            animation: floatUp 1.5s ease-out forwards;
+            pointer-events: none;
+            z-index: 1000;
+        }
+        .total-asset {
+            font-weight: bold;
+            font-size: 1.1em;
+            margin-top: 5px;
+            padding-top: 5px;
+            border-top: 1px solid #ddd;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <canvas id="chartCanvas" width="1000" height="400"></canvas>
+        <div class="current-price">현재가: <span id="currentPrice">0</span></div>
+    </div>
+    <div class="game-container">
+        <div class="player-panel">
+            <div class="info-title">플레이어</div>
+            <div class="player-info">
+                <div>현재 자산: <span id="gold">300</span>만원</div>
+                <div>보유 주식: <span id="stocks">0</span> 주</div>
+                <div>현재 포지션: <span id="position">없음</span></div>
+                <div>평균 매수가: <span id="avgPrice">0</span></div>
+                <div>실현손익: <span id="realizedProfit">0</span></div>
+                <div>수익률: <span id="profitRate">0</span>%</div>
+                <div class="total-asset">평가자산: <span id="totalAsset">300</span>만원</div>
+            </div>
+            <div>
+                <button class="long-btn" onclick="buy('long')">롱 매수</button>
+                <button class="long-btn" onclick="sell('long')">롱 매도</button>
+                <button class="short-btn" onclick="buy('short')">숏 매수</button>
+                <button class="short-btn" onclick="sell('short')">숏 매도</button>
+            </div>
+        </div>
+        <div class="ai-panel">
+            <div class="info-title">침팬지 AI</div>
+            <div class="player-info">
+                <div>현재 자산: <span id="chimpGold">300</span>만원</div>
+                <div>보유 주식: <span id="chimpStocks">0</span> 주</div>
+                <div>현재 포지션: <span id="chimpPosition">없음</span></div>
+                <div>평균 매수가: <span id="chimpAvgPrice">0</span></div>
+                <div>실현손익: <span id="chimpRealizedProfit">0</span></div>
+                <div>수익률: <span id="chimpProfitRate">0</span>%</div>
+                <div class="total-asset">평가자산: <span id="chimpTotalAsset">300</span>만원</div>
+                <div id="chimpStatus"></div>
+            </div>
+        </div>
+        <div class="ai-panel">
+            <div class="info-title">주식고수 AI</div>
+            <div class="player-info">
+                <div>현재 자산: <span id="expertGold">300</span>만원</div>
+                <div>보유 주식: <span id="expertStocks">0</span> 주</div>
+                <div>현재 포지션: <span id="expertPosition">없음</span></div>
+                <div>평균 매수가: <span id="expertAvgPrice">0</span></div>
+                <div>실현손익: <span id="expertRealizedProfit">0</span></div>
+                <div>수익률: <span id="expertProfitRate">0</span>%</div>
+                <div class="total-asset">평가자산: <span id="expertTotalAsset">300</span>만원</div>
+            </div>
+        </div>
+    </div>
+    <script>
+        const canvas = document.getElementById('chartCanvas');
+        const ctx = canvas.getContext('2d');
+
+        class Player {
+            constructor(name, initialGold) {
+                this.name = name;
+                this.gold = initialGold;
+                this.stocks = 0;
+                this.avgBuyPrice = 0;
+                this.totalInvestment = 0;
+                this.isBankrupt = false;
+                this.position = null; // 'long' or 'short' or null
+                this.realizedProfit = 0;
+            }
+
+            buy(price, type) {
+                if (this.position !== null) return false;
+                if (this.gold >= price) {
+                    this.stocks++;
+                    this.gold -= price;
+                    this.totalInvestment += price;
+                    this.avgBuyPrice = this.totalInvestment / this.stocks;
+                    this.position = type;
+                    return true;
+                }
+                return false;
+            }
+
+            sell(price) {
+        if (this.stocks > 0) {
+            this.stocks--;
+            let profit;
+            if (this.position === 'long') {
+                profit = price - this.avgBuyPrice;
+                this.gold += price;
+            } else if (this.position === 'short') {
+                profit = this.avgBuyPrice - price;
+                this.gold += this.avgBuyPrice + profit;
+            }
+            this.realizedProfit += profit;
+            
+            if (this.stocks === 0) {
+                this.totalInvestment = 0;
+                this.avgBuyPrice = 0;
+                this.position = null;
+            } else {
+                this.totalInvestment = this.avgBuyPrice * this.stocks;
+            }
+            return profit;
+        }
+        return null;
+    }
+
+    getProfitRate(currentPrice) {
+        if (this.stocks > 0) {
+            if (this.position === 'long') {
+                return ((currentPrice - this.avgBuyPrice) / this.avgBuyPrice * 100);
+            } else if (this.position === 'short') {
+                return ((this.avgBuyPrice - currentPrice) / this.avgBuyPrice * 100);
+            }
+        }
+        return 0;
+    }
+
+            getTotalAsset(currentPrice) {
+        let stockValue = 0;
+        if (this.stocks > 0) {
+            if (this.position === 'long') {
+                stockValue = this.stocks * currentPrice;
+            } else if (this.position === 'short') {
+                // 숏 포지션의 경우, 현재가가 매수가보다 높으면 손실, 낮으면 이익
+                const profitPerStock = this.avgBuyPrice - currentPrice;
+                stockValue = (this.stocks * this.avgBuyPrice) + (this.stocks * profitPerStock);
+            }
+        }
+        return this.gold + stockValue;
+    }
+        }
+
+        // 초기 설정
+        let currentPrice = 100;
+        let priceHistory = [];
+        let currentCandle = null;
+        let tickCount = 0;
+        const candleWidth = 15;
+        const tickInterval = 100;
+        const candlePeriod = 15;
+
+        // 시장 상태 변수들
+        let marketTrend = 0;
+        let volatility = 2;
+        let trendDuration = 0;
+        let volatilityDuration = 0;
+        let trendChangeProb = 0.001;
+        let volatilityChangeProb = 0.005;
+
+        // 플레이어 초기화
+        const player = new Player("Player", 300);
+        const chimpAI = new Player("Chimp", 300);
+        const expertAI = new Player("Expert", 300);
+        function generateInitialData() {
+    currentPrice = 300;  // 초기에는 100에서 시작
+    priceHistory = [];
+    
+    for(let i = 0; i < 50; i++) {
+        const open = currentPrice;
+        const change = Math.floor(Math.random() * 5) - 2;
+        const close = open + change;
+        const high = Math.max(open, close) + Math.floor(Math.random() * 2) + 1;
+        const low = Math.min(open, close) - Math.floor(Math.random() * 2) - 1;
+        
+        const tickData = [];
+        const tickCount = 10;
+        const tickStep = Math.floor((close - open) / tickCount);
+        for(let j = 0; j < tickCount; j++) {
+            tickData.push(open + tickStep * j);
+        }
+
+        const candle = {
+            open: open,
+            high: high,
+            low: low,
+            close: close,
+            tickData: tickData
+        };
+
+        priceHistory.push(candle);
+        currentPrice = close;
+    }
+
+    // 마지막에 현재가를 200으로 설정
+    currentPrice = 300;
+    initCurrentCandle();
+}
+
+        function initCurrentCandle() {
+            currentCandle = {
+                open: currentPrice,
+                high: currentPrice,
+                low: currentPrice,
+                close: currentPrice,
+                tickData: [currentPrice]
+            };
+        }
+
+        function showProfitAnimation(profit, playerId) {
+            const panel = document.querySelector(`#${playerId}`).closest('.player-panel, .ai-panel');
+            const element = document.createElement('div');
+            element.className = 'profit-animation';
+            element.style.color = profit >= 0 ? '#ff3333' : '#3333ff';
+            element.textContent = (profit >= 0 ? '+' : '') + profit.toFixed(0);
+            panel.appendChild(element);
+            
+            setTimeout(() => {
+                element.remove();
+            }, 1500);
+        }
+
+        function calculateMA(period) {
+            let ma = [];
+            let prices = priceHistory.map(candle => candle.close);
+            for (let i = period - 1; i < prices.length; i++) {
+                let sum = 0;
+                for (let j = 0; j < period; j++) {
+                    sum += prices[i - j];
+                }
+                ma.push(sum / period);
+            }
+            return ma;
+        }
+
+        function calculateRSI(period = 14) {
+            if (priceHistory.length < period) return 50;
+            
+            let gains = 0;
+            let losses = 0;
+            
+            for (let i = priceHistory.length - period; i < priceHistory.length; i++) {
+                const change = priceHistory[i].close - priceHistory[i].open;
+                if (change >= 0) gains += change;
+                else losses -= change;
+            }
+            
+            if (losses === 0) return 100;
+            const rs = gains / losses;
+            return 100 - (100 / (1 + rs));
+        }
+
+        function updatePrice() {
+    // 추세 변경
+    if (Math.random() < trendChangeProb) {
+        marketTrend = Math.floor(Math.random() * 3) - 1;
+        trendDuration = Math.floor(Math.random() * 1000) + 500;
+    }
+
+    // 변동성 변경 로직 수정
+    if (Math.random() < volatilityChangeProb) {
+        // 변동성이 1~5 사이에서 변화
+        if (volatility <= 1) {
+            volatility = Math.floor(Math.random() * 3) + 2; // 2~4로 증가
+        } else if (volatility >= 5) {
+            volatility = Math.floor(Math.random() * 3) + 1; // 1~3으로 감소
+        } else {
+            // 현재 변동성 기준으로 증가 또는 감소
+            volatility += Math.random() < 0.5 ? 1 : -1;
+        }
+        
+        // 변동성 지속 시간을 더 다양하게
+        volatilityDuration = Math.floor(Math.random() * 800) + 200; // 20초~100초
+    }
+
+    // 가격 변동 로직
+    let change = Math.floor(Math.random() * 3) - 1; // -1 ~ +1 기본 변동
+    change = change * volatility; // 변동성 적용
+    change += marketTrend; // 추세 적용
+
+    currentPrice = Math.max(1, currentPrice + change);
+
+    // 현재 봉 업데이트
+    if (!currentCandle) {
+        initCurrentCandle();
+    }
+
+    currentCandle.high = Math.max(currentCandle.high, currentPrice);
+    currentCandle.low = Math.min(currentCandle.low, currentPrice);
+    currentCandle.close = currentPrice;
+    currentCandle.tickData.push(currentPrice);
+
+    tickCount++;
+
+    chimpDecision();
+    expertDecision();
+
+    if (tickCount >= candlePeriod) {
+        priceHistory.push({...currentCandle});
+        if (priceHistory.length > 50) {
+            priceHistory.shift();
+        }
+        initCurrentCandle();
+        tickCount = 0;
+    }
+
+    updateDisplay();
+}
+
+        function chimpDecision() {
+            if (chimpAI.isBankrupt) return;
+            
+            const random = Math.random();
+            if (chimpAI.stocks === 0) {
+                if (random < 0.2) {
+                    const positionType = Math.random() < 0.5 ? 'long' : 'short';
+                    chimpAI.buy(currentPrice, positionType);
+                }
+            } else if (random < 0.2) {
+                const profit = chimpAI.sell(currentPrice);
+                if (profit !== null) {
+                    showProfitAnimation(profit, 'chimpGold');
+                }
+            }
+            
+            if (chimpAI.gold < 0) {
+                chimpAI.isBankrupt = true;
+                document.getElementById('chimpStatus').innerHTML = '<span class="bankrupt">파산!</span>';
+            }
+        }
+
+        function expertDecision() {
+            const rsi = calculateRSI(10);
+            const ma5 = calculateMA(5);
+            const ma10 = calculateMA(10);
+            const currentTrend = ma5[ma5.length-1] > ma5[ma5.length-2] ? 1 : -1;
+            
+            const oversold = 40;
+            const overbought = 60;
+            
+            if (expertAI.stocks === 0) {
+                if ((rsi < oversold && currentTrend > 0) || 
+                    (currentPrice < ma5[ma5.length-1] * 0.995)) {
+                    expertAI.buy(currentPrice, 'long');
+                } else if ((rsi > overbought && currentTrend < 0) ||
+                         (currentPrice > ma5[ma5.length-1] * 1.005)) {
+                    expertAI.buy(currentPrice, 'short');
+                }
+            } else {
+                const profitRate = expertAI.getProfitRate(currentPrice);
+                if (profitRate >= 1.5 || profitRate <= -1.0) {
+                    const profit = expertAI.sell(currentPrice);
+                    if (profit !== null) {
+                        showProfitAnimation(profit, 'expertGold');
+                    }
+                }
+            }
+        }
+
+        function drawChart() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            const allCandles = [...priceHistory, currentCandle];
+            const allPrices = [];
+            allCandles.forEach(candle => {
+                if (candle && typeof candle.high === 'number' && typeof candle.low === 'number') {
+                    allPrices.push(candle.high, candle.low);
+                    if (Array.isArray(candle.tickData)) {
+                        allPrices.push(...candle.tickData);
+                    }
+                }
+            });
+
+            const maxPrice = Math.max(...allPrices) * 1.001;
+            const minPrice = Math.min(...allPrices) * 0.999;
+            const priceRange = maxPrice - minPrice;
+            const scaleY = (canvas.height - 40) / priceRange;
+
+            // 격자 그리기
+            ctx.strokeStyle = '#f0f0f0';
+            ctx.beginPath();
+            for(let i = 0; i <= 5; i++) {
+                const y = canvas.height - 20 - (i * canvas.height / 5);
+                ctx.moveTo(50, y);
+                ctx.lineTo(canvas.width, y);
+            }
+            ctx.stroke();
+
+            // 이동평균선 그리기
+            const ma5 = calculateMA(5);
+            const ma20 = calculateMA(20);
+
+            if (ma20.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'purple';
+                ma20.forEach((ma, i) => {
+                    const x = (i + 19) * (candleWidth + 2) + 50;
+                    const y = canvas.height - 20 - ((ma - minPrice) * scaleY);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+
+            if (ma5.length > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'orange';
+                ma5.forEach((ma, i) => {
+                    const x = (i + 4) * (candleWidth + 2) + 50;
+                    const y = canvas.height - 20 - ((ma - minPrice) * scaleY);
+                    if (i === 0) ctx.moveTo(x, y);
+                    else ctx.lineTo(x, y);
+                });
+                ctx.stroke();
+            }
+
+            // 꼬리 그리기
+            allCandles.forEach((candle, i) => {
+                const x = i * (candleWidth + 2) + 50;
+                const y = canvas.height - 20;
+                const candleY = y - ((Math.max(candle.open, candle.close) - minPrice) * scaleY);
+                
+                ctx.beginPath();
+                ctx.strokeStyle = 'black';
+                ctx.moveTo(x + candleWidth/2, y - ((candle.high - minPrice) * scaleY));
+                ctx.lineTo(x + candleWidth/2, y - ((candle.low - minPrice) * scaleY));
+                ctx.stroke();
+            });
+
+            // 캔들 몸통 그리기
+            allCandles.forEach((candle, i) => {
+                const x = i * (candleWidth + 2) + 50;
+                const y = canvas.height - 20;
+                const height = Math.abs(candle.close - candle.open) * scaleY;
+                const candleY = y - ((Math.max(candle.open, candle.close) - minPrice) * scaleY);
+                
+                ctx.fillStyle = candle.close >= candle.open ? 'red' : 'blue';
+                ctx.fillRect(x, candleY, candleWidth, height || 1);
+            });
+
+            // 평균 매수가 라인
+            if (player.avgBuyPrice > 0) {
+                ctx.beginPath();
+                ctx.strokeStyle = 'green';
+                ctx.setLineDash([5, 5]);
+                const avgY = canvas.height - 20 - ((player.avgBuyPrice - minPrice) * scaleY);
+                ctx.moveTo(50, avgY);
+                ctx.lineTo(canvas.width, avgY);
+                ctx.stroke();
+                ctx.setLineDash([]);
+            }
+
+            // 가격 눈금
+            ctx.fillStyle = 'black';
+            ctx.textAlign = 'right';
+            for(let i = 0; i <= 5; i++) {
+                const price = minPrice + (priceRange * i / 5);
+                const y = canvas.height - 20 - ((price - minPrice) * scaleY);
+                ctx.fillText(price.toFixed(0), 45, y);
+            }
+        }
+
+        function buy(type) {
+            player.buy(currentPrice, type);
+            updateDisplay();
+        }
+
+        function sell() {
+            const profit = player.sell(currentPrice);
+            if (profit !== null) {
+                showProfitAnimation(profit, 'gold');
+                updateDisplay();
+            }
+        }
+
+        function updateDisplay() {
+            document.getElementById('currentPrice').textContent = currentPrice.toFixed(0);
+            
+            // 플레이어 정보 업데이트
+            document.getElementById('gold').textContent = player.gold.toFixed(0);
+            document.getElementById('stocks').textContent = player.stocks;
+            document.getElementById('position').textContent = player.position || '없음';
+            document.getElementById('position').className = player.position ? 
+                `position-${player.position}` : '';
+            document.getElementById('avgPrice').textContent = player.avgBuyPrice.toFixed(0);
+            document.getElementById('realizedProfit').textContent = player.realizedProfit.toFixed(0);
+            document.getElementById('realizedProfit').className = 
+                player.realizedProfit >= 0 ? 'profit-positive' : 'profit-negative';
+            document.getElementById('profitRate').textContent = player.getProfitRate(currentPrice).toFixed(0);
+            document.getElementById('totalAsset').textContent = player.getTotalAsset(currentPrice).toFixed(0);
+            // AI 정보 업데이트
+        [chimpAI, expertAI].forEach(ai => {
+            const prefix = ai.name.toLowerCase();
+            document.getElementById(`${prefix}Gold`).textContent = ai.gold.toFixed(0);
+            document.getElementById(`${prefix}Stocks`).textContent = ai.stocks;
+            document.getElementById(`${prefix}Position`).textContent = ai.position || '없음';
+            document.getElementById(`${prefix}Position`).className = ai.position ? 
+                `position-${ai.position}` : '';
+            document.getElementById(`${prefix}AvgPrice`).textContent = ai.avgBuyPrice.toFixed(0);
+            document.getElementById(`${prefix}RealizedProfit`).textContent = ai.realizedProfit.toFixed(0);
+            document.getElementById(`${prefix}RealizedProfit`).className = 
+                ai.realizedProfit >= 0 ? 'profit-positive' : 'profit-negative';
+            document.getElementById(`${prefix}ProfitRate`).textContent = 
+                ai.getProfitRate(currentPrice).toFixed(0);
+            document.getElementById(`${prefix}TotalAsset`).textContent = 
+                ai.getTotalAsset(currentPrice).toFixed(0);
+        });
+    }
+
+    // 초기화 및 게임 시작
+    generateInitialData();
+    updateDisplay();
+    drawChart();
+
+    let gameInterval = setInterval(() => {
+        updatePrice();
+        drawChart();
+    }, tickInterval);
+</script>
+</body>
+</html>
+```
