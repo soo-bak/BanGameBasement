@@ -15,18 +15,11 @@
 
 const entries = [
   {
-		title: "침팬지를 이겨라",
-		filename: "BeatTheChimpanzees.html",
-		description: "실시간 주식 차트 게임",
-		author: "유원",
-
-	},
-	{
-		title: "LCK 시뮬레이터",
+    title: "LCK 시뮬레이터",
 		filename: "LCK-simulator.html",
 		description: "LCK 시뮬레이터 게임",
 		author: "유원",
-
+    
 	},
 	{
     title: "스시 마스터",
@@ -34,4 +27,22 @@ const entries = [
     description: "마스터-초밥왕에 도전하세요! (약간의 운과 약간의 전략, 약간의 컨트롤이 필요합니다.)",
 		author: "필근",
 	},
+  {
+    title: "사업부가 너무 많아",
+		filename: "ThereIsTooManyBsps.html",
+    description: "사업부 운영 시뮬레이션",
+		author: "유원",
+	},
+  {
+    title: "돈 걸고 싸워서 스킬 배우고 상대를 격파하는 게임",
+		filename: "TheBOXERGame.html",
+    description: "돈 걸고 싸워서 스킬 배우고 상대를 격파하는 게임이라고함",
+		author: "필근",
+	},
+  {
+    title: "침팬지를 이겨라",
+    filename: "BeatTheChimpanzees.html",
+    description: "실시간 주식 차트 게임",
+    author: "유원",
+  },
 ];

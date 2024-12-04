@@ -1,0 +1,1771 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>THE BOXER</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f0f0f0;
+        }
+
+        #game-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+
+        h1, h2 {
+            text-align: center;
+        }
+
+        #stats, #skills, #training, #opponent-select, #match {
+            margin-bottom: 20px;
+        }
+
+        #skills {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .skill-icon {
+            font-size: 24px;
+            margin: 5px;
+            opacity: 0.5;
+            filter: grayscale(100%);
+            transition: all 0.3s ease;
+        }
+
+        .skill-icon.active {
+            opacity: 1;
+            filter: grayscale(0%);
+        }
+
+        select, button {
+            width: 100%;
+            padding: 10px;
+            margin-top: 10px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:disabled {
+            background-color: #ddd;
+            cursor: not-allowed;
+        }
+
+        #match {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        #player, #opponent {
+            text-align: center;
+        }
+
+        .player-emoji, .opponent-emoji {
+            font-size: 50px;
+        }
+
+        .health {
+            display: flex;
+            justify-content: center;
+            margin-top: 10px;
+        }
+
+        .heart {
+            font-size: 24px;
+            margin: 0 2px;
+        }
+
+        #match-log {
+            height: 200px;
+            overflow-y: auto;
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-top: 20px;
+        }
+
+        #training-progress {
+    width: 100%;
+    height: 20px;
+    background-color: #f0f0f0;
+    margin-top: 10px;
+    border: 1px solid #ddd;
+}
+
+#progress-bar {
+    width: 0;
+    height: 100%;
+    background-color: #ffd700;
+    transition: width 5s linear;
+}
+
+        #skill-select option:disabled, #opponent-list option:disabled {
+            background-color: #f0f0f0;
+            color: #888;
+        }
+
+        .player-info, .opponent-info {
+            text-align: center;
+            margin-top: 5px;
+        }
+
+        .name {
+            font-weight: bold;
+            font-size: 18px;
+        }
+
+        .level {
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>🥊 THE BOXER</h1>
+        
+        <div id="stats">
+            <p>💰 파이트 머니: <span id="money">30,000,000</span></p>
+            <p>🏆 전적: <span id="record">0승 0패</span></p>
+        </div>
+        
+        <div id="skills"></div>
+        
+        <div id="training">
+            <h2>훈련장</h2>
+            <select id="skill-select">
+                <option value="">스킬 선택</option>
+            </select>
+            <button id="train-button">훈련 시작</button>
+            <div id="training-progress">
+                <div id="progress-bar"></div>
+            </div>
+        </div>
+        
+        <div id="opponent-select">
+            <h2>상대 선택</h2>
+            <select id="opponent-list">
+                <option value="">상대를 선택하세요</option>
+            </select>
+        </div>
+        
+        <div id="match">
+            <div id="player">
+                <span class="player-emoji">👤</span>
+                <div class="player-info">
+                    <div class="name">당신</div>
+                </div>
+                <div id="player-health"></div>
+            </div>
+            <div id="vs">VS</div>
+            <div id="opponent">
+                <span class="opponent-emoji">🥊</span>
+                <div class="opponent-info">
+                    <div class="name">???</div>
+                    <div class="level">Lv.?</div>
+                </div>
+                <div id="opponent-health"></div>
+            </div>
+        </div>
+        
+        <button id="start-match" disabled>경기 시작</button>
+        
+        <div id="match-log"></div>
+    </div>
+
+    <audio id="bgm" loop>
+        <source src="https://www.televisiontunes.com/uploads/audio/Rocky%20-%20Gonna%20Fly%20Now.mp3" type="audio/mpeg">
+    </audio>
+        
+    <script>
+        // 게임 상태
+        let gameState = {
+            money: 30000000,
+            wins: 0,
+            losses: 0,
+            skills: [],
+            opponents: []
+        };
+
+        document.addEventListener('click', function() {
+    const bgm = document.getElementById('bgm');
+    bgm.volume = 0.5;  // 여기서 볼륨을 50%로 설정
+    if (bgm.paused) {
+        bgm.play().catch((error) => {
+            console.log("Audio play was prevented. Error:", error);
+        });
+    }
+}, { once: true });  // 첫 번째 클릭 후 오디오 재생
+
+let isMatchOver = false;
+
+        // 스킬 정보
+        const skills = [
+            {icon: '🫀', name: '두개의 심장', description: '생명력 +1', condition: '5승, 10,000,000원', cost: 10000000, wins: 5},
+            {icon: '🫁', name: '기적의 심호흡', description: '상대방의 주먹 회피 (확률 50%)', condition: '5승, 30,000,000원', cost: 30000000, wins: 5},
+            {icon: '👊', name: '정권 지르기', description: '데미지 3의 강력한 주먹을 지름 (확률 10%)', condition: '10승, 50,000,000원', cost: 50000000, wins: 10},
+            {icon: '🔨', name: '숨겨둔 망치', description: '품 속에서 망치를 꺼내 상대방에게 2~4의 데미지 (확률 20%)', condition: '10승, 60,000,000원', cost: 60000000, wins: 10},
+            {icon: '❤️‍🔥', name: '불타는 마음', description: '발동 후 해당 경기, 당신 주먹의 데미지 2배 (확률 30%)', condition: '10승, 100,000,000원', cost: 100000000, wins: 10},
+            {icon: '🎭', name: '포커페이스', description: '상대방의 주먹 명중률 50% 감소', condition: '10승, 120,000,000원', cost: 120000000, wins: 10},
+            {icon: '👟', name: '번개의 스탭', description: '발동 후 상대방의 주먹명중률 50% 감소 (확률 30%)', condition: '15승, 200,000,000원', cost: 200000000, wins: 15},
+            {icon: '🩻', name: '관통하는 시야', description: '모든 스킬 발동 확률 50% 증가', condition: '15승, 400,000,000원', cost: 400000000, wins: 15},
+            {icon: '🪦', name: '죽음의 무덤', description: '사망시 50%의 확률로 부활', condition: '20승, 500,000,000원', cost: 500000000, wins: 20},
+            {icon: '🎲', name: '도박사의 럭키드로우', description: '생명이 1 남았을 때 상대방을 즉사시키는 주먹을 지름 (확률10%)', condition: '25승, 1,000,000,000원', cost: 1000000000, wins: 25}
+        ];
+
+        // 상대방 정보 초기화
+        function initializeOpponents() {
+            gameState.opponents = [
+            {icon: '🕺', name: '몸치 댄서', level: 1, requiredWins: 0, requiredMoney: 4000000, skills: [], defeated: false, damageChance: 0.20},
+{icon: '👷', name: '엄격한 근로자', level: 1, requiredWins: 0, requiredMoney: 6000000, skills: [], defeated: false, damageChance: 0.23},
+{icon: '🧑‍🔧', name: '바꿔치는 정비사', level: 1, requiredWins: 0, requiredMoney: 7000000, skills: [], defeated: false, damageChance: 0.25},
+{icon: '🧑‍💼', name: '비범한 직장인', level: 1, requiredWins: 0, requiredMoney: 9000000, skills: [], defeated: false, damageChance: 0.25},
+{icon: '💂', name: '든든한 근위병', level: 1, requiredWins: 1, requiredMoney: 5000000, skills: ['두개의 심장'], defeated: false, damageChance: 0.26},
+{icon: '🏌️', name: '비즈니스 골프선수', level: 1, requiredWins: 1, requiredMoney: 5000000, skills: [], defeated: false, damageChance: 0.27},
+{icon: '🧑‍🏭', name: '살인의 용접공', level: 1, requiredWins: 1, requiredMoney: 8000000, skills: ['두개의 심장', '포커페이스'], defeated: false, damageChance: 0.28},
+{icon: '🧑‍💻', name: '클릭을 모르는 직원', level: 2, requiredWins: 2, requiredMoney: 17000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야'], defeated: false, damageChance: 0.30},
+{icon: '🤸', name: '날렵한 스트릿 댄서', level: 2, requiredWins: 2, requiredMoney: 18000000, skills: ['두개의 심장', '포커페이스', '기적의 심호흡'], defeated: false, damageChance: 0.30},
+{icon: '🤹', name: '재미없는 광대', level: 2, requiredWins: 2, requiredMoney: 19000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡'], defeated: false, damageChance: 0.31},
+{icon: '👮', name: '변절한 경찰', level: 2, requiredWins: 2, requiredMoney: 22000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '정권 지르기', '숨겨둔 망치'], defeated: false, damageChance: 0.32},
+{icon: '🫅', name: '탐관오리 2세', level: 2, requiredWins: 3, requiredMoney: 20000000, skills: ['포커페이스', '관통하는 시야', '숨겨둔 망치', '도박사의 럭키드로우'], defeated: false, damageChance: 0.33},
+{icon: '🎅', name: '귀찮은 산타', level: 2, requiredWins: 3, requiredMoney: 18000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '숨겨둔 망치', '번개의 스탭', '죽음의 무덤'], defeated: false, damageChance: 0.34},
+{icon: '🏋️', name: '스테로이드 역도선수', level: 2, requiredWins: 3, requiredMoney: 21000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기'], defeated: false, damageChance: 0.35},
+{icon: '🧑‍🍳', name: '악마의 요리사', level: 2, requiredWins: 3, requiredMoney: 23000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '번개의 스탭'], defeated: false, damageChance: 0.38},
+{icon: '🧑‍✈️', name: '전과자 경찰대 학생', level: 2, requiredWins: 3, requiredMoney: 20000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '불타는 마음', '번개의 스탭'], defeated: false, damageChance: 0.39},
+{icon: '🧑‍🏫', name: '체벌하는 선생님', level: 2, requiredWins: 3, requiredMoney: 25000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치'], defeated: false, damageChance: 0.40},
+{icon: '🧑‍🎨', name: '색맹 화가', level: 3, requiredWins: 4, requiredMoney: 30000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '숨겨둔 망치', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.40},
+{icon: '🧑‍🌾', name: '저승의 농부', level: 3, requiredWins: 4, requiredMoney: 45000000, skills: ['두개의 심장', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음', '죽음의 무덤'], defeated: false, damageChance: 0.41},
+{icon: '🦹', name: '가면쓴 지명수배범', level: 3, requiredWins: 4, requiredMoney: 48000000, skills: ['포커페이스', '관통하는 시야', '숨겨둔 망치', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.44},
+{icon: '🧑‍🚒', name: '방화범 소방관', level: 3, requiredWins: 5, requiredMoney: 51000000, skills: ['두개의 심장', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음'], defeated: false, damageChance: 0.45},
+{icon: '🧑‍🎓', name: '멍청한 석사', level: 3, requiredWins: 5, requiredMoney: 50000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.46},
+{icon: '🧑‍🔬', name: '미치광이 과학자', level: 3, requiredWins: 5, requiredMoney: 52000000, skills: ['관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음', '번개의 스탭', '죽음의 무덤'], defeated: false, damageChance: 0.48},
+{icon: '🧑‍🎤', name: '죽음의 락스타', level: 3, requiredWins: 6, requiredMoney: 55000000, skills: ['정권 지르기', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.50},
+{icon: '🧝', name: '난쟁이 엘프', level: 4, requiredWins: 8, requiredMoney: 90000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '불타는 마음', '번개의 스탭', '죽음의 무덤'], defeated: false, damageChance: 0.52},
+{icon: '🧑‍⚖️', name: '편파적인 판사', level: 4, requiredWins: 8, requiredMoney: 95000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '숨겨둔 망치', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.55},
+{icon: '🧙‍♂️', name: 'AI를 활용하는 마법사', level: 4, requiredWins: 9, requiredMoney: 100000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '숨겨둔 망치', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.55},
+{icon: '🥷', name: '은밀한 닌자', level: 4, requiredWins: 10, requiredMoney: 100000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.58},
+{icon: '🧚', name: '못생긴 요정', level: 4, requiredWins: 10, requiredMoney: 150000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '숨겨둔 망치', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.58},
+{icon: '🧛', name: '피를 못보는 뱀파이어', level: 4, requiredWins: 10, requiredMoney: 130000000, skills: ['포커페이스', '관통하는 시야', '기적의 심호흡', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.59},
+{icon: '🦸', name: '평범한 슈퍼맨', level: 4, requiredWins: 11, requiredMoney: 120000000, skills: ['두개의 심장', '관통하는 시야', '기적의 심호흡', '정권 지르기', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.60},
+{icon: '🧑‍⚕️', name: '치매 의사', level: 5, requiredWins: 15, requiredMoney: 500000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.65},
+{icon: '🧜', name: '삼지창 든 인어', level: 5, requiredWins: 16, requiredMoney: 550000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.67},
+{icon: '🧑‍🚀', name: '춤추는 우주인', level: 5, requiredWins: 20, requiredMoney: 700000000, skills: ['두개의 심장', '포커페이스', '관통하는 시야', '기적의 심호흡', '정권 지르기', '숨겨둔 망치', '불타는 마음', '번개의 스탭', '죽음의 무덤', '도박사의 럭키드로우'], defeated: false, damageChance: 0.70}
+                // 여기에 나머지 상대방들을 추가하세요
+            ];
+        }
+
+        let currentOpponent = null;  // 전역 변수로 선언
+
+document.getElementById('opponent-list').addEventListener('change', function() {
+    const selectedOpponentName = this.value;
+    currentOpponent = gameState.opponents.find(o => o.name === selectedOpponentName);  // 선택된 상대를 currentOpponent에 저장
+});
+
+
+        // 게임 초기화
+        function initializeGame() {
+            updateStats();
+            updateSkills();
+            initializeOpponents();
+            updateOpponentList();
+            updateSkillSelect();
+            document.getElementById('bgm').play();
+            updateSkillSelect();
+        }
+
+        function checkAllOpponentsDefeated() {
+    const allDefeated = gameState.opponents.every(opponent => opponent.defeated);
+    if (allDefeated) {
+        alert("**모든 상대방을 한 번씩 무너뜨렸습니다! 당신의 전적과 파이트머니를 위해 계속 싸우세요!**");
+    }
+}
+
+        // 통계 업데이트
+        function updateStats() {
+            document.getElementById('money').textContent = gameState.money.toLocaleString();
+            document.getElementById('record').textContent = `${gameState.wins}승 ${gameState.losses}패`;
+            updateSkillSelect(); // 추가
+        }
+
+        // 스킬 아이콘 업데이트
+        function updateSkills() {
+            const skillsContainer = document.getElementById('skills');
+            skillsContainer.innerHTML = '';
+            skills.forEach(skill => {
+                const skillIcon = document.createElement('span');
+                skillIcon.textContent = skill.icon;
+                skillIcon.classList.add('skill-icon');
+                if (gameState.skills.includes(skill.name)) {
+                    skillIcon.classList.add('active');
+                }
+                skillsContainer.appendChild(skillIcon);
+            });
+        }
+
+        // 스킬 선택 옵션 업데이트
+        function updateSkillSelect() {
+    const skillSelect = document.getElementById('skill-select');
+    skillSelect.innerHTML = '<option value="">스킬 선택</option>';
+    skills.forEach(skill => {
+        const option = document.createElement('option');
+        option.value = skill.name;
+        option.textContent = `${skill.icon} ${skill.name} (${skill.description}) - ${skill.condition}`;
+        if (gameState.skills.includes(skill.name)) {
+            option.disabled = true;
+            option.textContent += ' (습득 완료)';
+        } else if (gameState.wins < skill.wins || gameState.money < skill.cost) {
+            option.disabled = true;
+        }
+        skillSelect.appendChild(option);
+    });
+}
+
+        // 레벨별 모든 상대를 격파했는지 확인하는 함수
+function hasDefeatedAllOpponentsInLevel(level) {
+    return gameState.opponents
+        .filter(opponent => opponent.level === level)
+        .every(opponent => opponent.defeated);
+}
+
+// 상대방 목록 업데이트 함수 수정
+function updateOpponentList() {
+    const opponentList = document.getElementById('opponent-list');
+    opponentList.innerHTML = '<option value="">상대를 선택하세요</option>';
+    
+    let maxUnlockedLevel = 1;
+    for (let i = 1; i <= 5; i++) {
+        if (i === 1 || hasDefeatedAllOpponentsInLevel(i - 1)) {
+            maxUnlockedLevel = i;
+        } else {
+            break;
+        }
+    }
+
+    gameState.opponents.forEach(opponent => {
+        const option = document.createElement('option');
+        option.value = opponent.name;
+        option.textContent = `${opponent.icon} ${opponent.name} (Lv.${opponent.level}) - ${opponent.requiredWins}승, ${opponent.requiredMoney.toLocaleString()}원`;
+        if (opponent.defeated) {
+            option.textContent += ' 💀';
+        }
+        if (gameState.wins < opponent.requiredWins || 
+            gameState.money < opponent.requiredMoney || 
+            opponent.level > maxUnlockedLevel) {
+            option.disabled = true;
+        }
+        opponentList.appendChild(option);
+    });
+} 
+
+        // 훈련 시작
+        let isTraining = false;
+
+document.getElementById('train-button').addEventListener('click', function() {
+    const selectedSkill = document.getElementById('skill-select').value;
+    if (selectedSkill && !isTraining && !isMatchInProgress) {
+        const skill = skills.find(s => s.name === selectedSkill);
+        if (skill && gameState.money >= skill.cost && gameState.wins >= skill.wins && !gameState.skills.includes(skill.name)) {
+            isTraining = true;
+            gameState.money -= skill.cost;
+            updateStats();
+            
+            document.getElementById('train-button').disabled = true;
+            document.getElementById('start-match').disabled = true;
+            
+            const progressBar = document.getElementById('progress-bar');
+            progressBar.style.width = '0';
+            setTimeout(() => {
+                progressBar.style.width = '100%';
+            }, 50);
+
+            setTimeout(() => {
+        gameState.skills.push(skill.name);
+        updateStats();
+        updateSkills();
+        isTraining = false;
+        document.getElementById('train-button').disabled = false;
+        document.getElementById('start-match').disabled = false;
+        progressBar.style.transition = 'none';  // 트랜지션 효과 제거
+        progressBar.style.width = '0';  // 즉시 너비를 0으로 설정
+        setTimeout(() => {
+            progressBar.style.transition = 'width 5s linear';  // 트랜지션 효과 복원
+        }, 50);
+        alert(`${skill.name}을(를) 훈련했습니다!`);
+    }, 5000);
+        } else {
+            alert('훈련 조건을 충족하지 않았거나 이미 습득한 스킬입니다.');
+        }
+    }
+});
+
+        // 상대 선택 이벤트 리스너 수정
+document.getElementById('opponent-list').addEventListener('change', function() {
+    const selectedOpponent = this.value;
+    const opponentEmoji = document.querySelector('.opponent-emoji');
+    const opponentName = document.querySelector('.opponent-info .name');
+    const opponentLevel = document.querySelector('.opponent-info .level');
+    const startMatchButton = document.getElementById('start-match');
+
+    // 플레이어 이모지 초기화
+    document.querySelector('.player-emoji').textContent = '👤';
+
+    if (selectedOpponent) {
+        const opponent = gameState.opponents.find(o => o.name === selectedOpponent);
+        if (opponent) {
+            opponentEmoji.textContent = opponent.icon;
+            opponentName.textContent = opponent.name;
+            opponentLevel.textContent = `Lv.${opponent.level}`;
+
+            const canFight = hasDefeatedAllOpponentsInLevel(opponent.level - 1);
+            startMatchButton.disabled = !canFight;
+            startMatchButton.textContent = canFight ? '경기 시작' : '하위 레벨의 모든 선수들을 격파하세요!';
+        }
+    } else {
+        startMatchButton.disabled = true;
+        startMatchButton.textContent = '경기 시작';
+        opponentEmoji.textContent = '🥊';
+        opponentName.textContent = '???';
+        opponentLevel.textContent = 'Lv.?';
+    }
+});
+
+       // 경기 시작 버튼 이벤트 리스너 수정
+document.getElementById('start-match').addEventListener('click', function() {
+    if (!isMatchInProgress && !isTraining && this.textContent === '경기 시작') {
+        const selectedOpponent = document.getElementById('opponent-list').value;
+        if (selectedOpponent) {
+            isMatchInProgress = true;
+            document.getElementById('train-button').disabled = true;
+            document.getElementById('start-match').disabled = true;
+            startMatch(selectedOpponent);
+        }
+    }
+});
+
+        // 전역 변수 추가
+let isMatchInProgress = false;
+
+        // 경기 진행
+        function startMatch(opponentName) {
+    isMatchInProgress = true;
+    document.getElementById('opponent-list').disabled = true;
+    document.getElementById('start-match').disabled = true;
+    const opponent = gameState.opponents.find(o => o.name === opponentName);
+    const matchLog = document.getElementById('match-log');
+    matchLog.innerHTML = '';
+    
+    let playerHealth = 5 + (gameState.skills.includes('두개의 심장') ? 1 : 0);
+    let opponentHealth = 5 + (opponent.skills.includes('두개의 심장') ? 1 : 0);
+    
+    let playerBurningHeart = false;
+    let opponentBurningHeart = false;
+    let playerLightningStep = false;
+    let opponentLightningStep = false;
+    let playerDeathGrave = false;
+    let opponentDeathGrave = false;
+    let playerLuckyDraw = false;
+    let opponentLuckyDraw = false;
+    
+    updateHealthDisplay('player-health', playerHealth);
+    updateHealthDisplay('opponent-health', opponentHealth);
+    
+    let isMatchOver = false; // 각 경기마다 새로운 isMatchOver 변수 생성
+    let lastMessageTime = Date.now();
+            
+            // 패시브 스킬 발동
+            let delay = 0;
+            gameState.skills.forEach(skill => {
+                if (['두개의 심장', '포커페이스', '관통하는 시야'].includes(skill)) {
+                    setTimeout(() => logMessage(getSkillText(skill, true)), delay);
+                    delay += 1000;
+                }
+            });
+            
+            opponent.skills.forEach(skill => {
+                if (['두개의 심장', '포커페이스', '관통하는 시야'].includes(skill)) {
+                    setTimeout(() => logMessage(getSkillText(skill, false)), delay);
+                    delay += 1000;
+                }
+            });
+            
+            setTimeout(() => {
+                logMessage('<strong>🎙️경기시작</strong>');
+                
+                let playerDamageChance = getPlayerDamageChance(opponent.level);
+                let opponentDamageChance = opponent.damageChance;
+                
+                if (gameState.skills.includes('포커페이스')) {
+                    opponentDamageChance *= 0.5;
+                }
+                if (opponent.skills.includes('포커페이스')) {
+                    playerDamageChance *= 0.5;
+                }
+                
+                let lastMessageTime = Date.now();
+
+                const matchInterval = setInterval(() => {
+    if (isMatchOver) {
+        clearInterval(matchInterval);
+        return;
+    }
+
+    const currentTime = Date.now();
+    if (currentTime - lastMessageTime < 1500) return;
+
+    if (Math.random() < 0.3) {
+        logMessage(getCompetitionText());
+    } else {
+        // 불타는 마음 스킬 체크
+        if (!playerBurningHeart && gameState.skills.includes('불타는 마음') && Math.random() < getSkillProbability(gameState, 0.3)) {
+            playerBurningHeart = true;
+            logMessage(getSkillText('불타는 마음', true));
+        }
+        if (!opponentBurningHeart && opponent.skills.includes('불타는 마음') && Math.random() < getSkillProbability(opponent, 0.3)) {
+            opponentBurningHeart = true;
+            logMessage(getSkillText('불타는 마음', false));
+        }
+
+        // 번개의 스탭 스킬 체크
+        if (!playerLightningStep && gameState.skills.includes('번개의 스탭') && Math.random() < getSkillProbability(gameState, 0.3)) {
+            playerLightningStep = true;
+            logMessage(getSkillText('번개의 스탭', true));
+        }
+        if (!opponentLightningStep && opponent.skills.includes('번개의 스탭') && Math.random() < getSkillProbability(opponent, 0.3)) {
+            opponentLightningStep = true;
+            logMessage(getSkillText('번개의 스탭', false));
+        }
+
+        let playerAttackChance = getPlayerDamageChance(opponent.level);
+        let opponentAttackChance = opponent.damageChance;
+
+        if (gameState.skills.includes('포커페이스')) {
+            opponentAttackChance *= 0.5;
+        }
+        if (opponent.skills.includes('포커페이스')) {
+            playerAttackChance *= 0.5;
+        }
+
+        if (playerLightningStep) {
+            opponentAttackChance *= 0.5;
+        }
+        if (opponentLightningStep) {
+            playerAttackChance *= 0.5;
+        }
+
+        if (Math.random() < playerAttackChance) {
+            const damage = dealDamage(true, opponent, playerHealth, opponentHealth, playerBurningHeart, opponentBurningHeart);
+            opponentHealth -= damage;
+            updateHealthDisplay('opponent-health', opponentHealth);
+            if (opponentHealth <= 0) {
+                clearInterval(matchInterval);
+                endMatch(true, opponent);
+                return;
+            }
+        }
+
+        if (Math.random() < opponentAttackChance) {
+            const damage = dealDamage(false, opponent, opponentHealth, playerHealth, playerBurningHeart, opponentBurningHeart);
+            playerHealth -= damage;
+            updateHealthDisplay('player-health', playerHealth);
+            if (playerHealth <= 0) {
+                if (!playerDeathGrave && gameState.skills.includes('죽음의 무덤') && Math.random() < getSkillProbability(gameState, 0.5)) {
+                    playerDeathGrave = true;
+                    logMessage(getSkillText('죽음의 무덤', true));
+                    playerHealth = 5 + (gameState.skills.includes('두개의 심장') ? 1 : 0);
+                    updateHealthDisplay('player-health', playerHealth);
+                } else {
+                    clearInterval(matchInterval);
+                    endMatch(false, opponent);
+                    return;
+                }
+            }
+        }
+    }
+
+    lastMessageTime = currentTime;
+}, 100);  // 1.5초마다 실행
+            }, delay + 1000);  // 패시브 스킬 소개 후 1초 뒤에 경기 시작
+        }
+
+        // 데미지 처리
+        function dealDamage(isPlayer, opponent, attackerHealth, defenderHealth, playerBurningHeart, opponentBurningHeart) {
+    let damage = 1;
+    const attacker = isPlayer ? gameState : opponent;
+    const defender = isPlayer ? opponent : gameState;
+    
+    if (attackerHealth === 1 && attacker.skills.includes('도박사의 럭키드로우') && Math.random() < getSkillProbability(attacker, 0.1)) {
+        logMessage(getSkillText('도박사의 럭키드로우', isPlayer));
+        return defenderHealth;
+    }
+    
+    if (attacker.skills.includes('정권 지르기') && Math.random() < getSkillProbability(attacker, 0.1)) {
+        damage = 3;
+        logMessage(getSkillText('정권 지르기', isPlayer));
+    } else if (attacker.skills.includes('숨겨둔 망치') && Math.random() < getSkillProbability(attacker, 0.2)) {
+        damage = Math.floor(Math.random() * 3) + 2;
+        logMessage(getSkillText('숨겨둔 망치', isPlayer));
+    }
+    
+    if (isPlayer ? playerBurningHeart : opponentBurningHeart) {
+        damage *= 2;
+    }
+    
+    if (defender.skills.includes('기적의 심호흡') && Math.random() < getSkillProbability(defender, 0.5)) {
+        logMessage(getSkillText('기적의 심호흡', !isPlayer));
+        return 0;
+    }
+    
+    logMessage(getDamageText(isPlayer, damage));
+    return damage;
+}
+
+        // 체력 표시 업데이트
+        function updateHealthDisplay(id, health) {
+    const healthDisplay = document.getElementById(id);
+    healthDisplay.innerHTML = '❤️'.repeat(Math.max(0, health));
+}
+
+// 메시지 로깅 함수 수정
+function logMessage(message) {
+    if (!isMatchOver) {
+        const matchLog = document.getElementById('match-log');
+        const messageElement = document.createElement('p');
+        messageElement.innerHTML = message;
+        matchLog.appendChild(messageElement);
+        matchLog.scrollTop = matchLog.scrollHeight;
+    }
+}
+
+        // 경기 종료
+        function endMatch(playerWin, opponent, isMatchOver) {
+    isMatchOver = true; // 경기 종료 표시
+    isMatchInProgress = false;
+    document.getElementById('opponent-list').disabled = false;
+    document.getElementById('start-match').disabled = false;
+    document.getElementById('train-button').disabled = false;
+
+    if (playerWin) {
+        gameState.wins++;
+        gameState.money += opponent.requiredMoney;
+        opponent.defeated = true;
+        logMessage(victoryTexts[Math.floor(Math.random() * victoryTexts.length)]);
+        document.querySelector('.opponent-emoji').textContent = '💀';
+    } else {
+        gameState.losses++;
+        gameState.money -= opponent.requiredMoney / 2;
+        logMessage(defeatTexts[Math.floor(Math.random() * defeatTexts.length)]);
+        document.querySelector('.player-emoji').textContent = '💀';
+    }
+
+    updateStats();
+    updateOpponentList();
+    
+    checkAllOpponentsDefeated();
+
+    if (gameState.money <= 0) {
+        alert('파이트 머니를 모두 잃었습니다. 게임 오버!');
+        initializeGame();
+    }
+    updateSkillSelect();
+}
+
+function getSkillProbability(character, baseProbability) {
+    return character.skills.includes('관통하는 시야') ? baseProbability * 1.5 : baseProbability;
+}
+
+        // 메시지 로깅
+        function logMessage(message) {
+    if (isMatchOver) return;
+    const matchLog = document.getElementById('match-log');
+    const messageElement = document.createElement('p');
+    messageElement.innerHTML = message;
+    matchLog.appendChild(messageElement);
+    matchLog.scrollTop = matchLog.scrollHeight;
+}
+
+
+        // 스킬 텍스트 반환
+        function getSkillText(skillName, isPlayer) {
+            const skillTexts = {
+                '두개의 심장': {
+    player: '<strong style="color: blue;">🫀 : 두 개의 심장을 지닌 당신은 오늘 쓰러지지 않을 각오를 다집니다.</strong>',
+    opponent: '<strong style="color: red;">🫀 : 두 개의 심장을 지닌 상대방이 오늘 쓰러지지 않을 각오를 다집니다.</strong>'
+},
+'포커페이스': {
+    player: '<strong style="color: blue;">🎭 : 당신의 노련한 포커페이스에 상대방은 주먹을 쉽게 뻗지 못합니다.</strong>',
+    opponent: '<strong style="color: red;">🎭 : 상대방의 노련한 포커페이스에 당신은 주먹을 쉽게 뻗지 못합니다.</strong>'
+},
+'관통하는 시야': {
+    player: '<strong style="color: blue;">🩻 : 당신의 눈이 번뜩입니다. 지금까지의 훈련이 빛을 봅니다.</strong>',
+    opponent: '<strong style="color: red;">🩻 : 상대방의 눈이 번뜩입니다. 지금까지의 상대방의 땀방울이 느껴집니다.</strong>'
+},
+'기적의 심호흡': {
+    player: '<strong style="color: blue;">🫁 : 기적의 심호흡으로 당신은 상대방 주먹의 방향을 읽어 주먹을 피했습니다!</strong>',
+    opponent: '<strong style="color: red;">🫁 : 기적의 심호흡으로 상대방은 당신 주먹의 방향을 읽어 주먹을 피했습니다!</strong>'
+},
+'정권 지르기': {
+    player: '<strong style="color: blue;">👊 : 당신의 정권 지르기가 명중합니다!</strong>',
+    opponent: '<strong style="color: red;">👊 : 상대방의 정권 지르기가 당신에게 명중합니다!</strong>'
+},
+'숨겨둔 망치': {
+    player: '<strong style="color: blue;">🔨 : 당신의 품 속에 숨겨둔 망치가 상대방을 가격합니다!</strong>',
+    opponent: '<strong style="color: red;">🔨 : 상대방이 자신의 품 속에 숨겨둔 망치로 당신을 가격합니다!</strong>'
+},
+'불타는 마음': {
+    player: '<strong style="color: blue;">❤️‍🔥 : 앞으로 당신의 주먹은 당신의 열정만큼 뜨거워집니다!</strong>',
+    opponent: '<strong style="color: red;">❤️‍🔥 : 앞으로 상대방의 주먹은 당신의 열정만큼 뜨거워집니다!</strong>'
+},
+'번개의 스탭': {
+    player: '<strong style="color: blue;">👟 : 당신의 번개같은 발재간에 상대방의 주먹은 길을 잃고 맙니다!</strong>',
+    opponent: '<strong style="color: red;">👟 : 상대방의 번개같은 발재간에 당신의 주먹은 길을 잃고 맙니다!</strong>'
+},
+'죽음의 무덤': {
+    player: '<strong style="color: blue;">🪦 : 당신은 좀비처럼 다시 일어섰습니다!</strong>',
+    opponent: '<strong style="color: red;">🪦 : 상대방이 좀비처럼 다시 일어섰습니다!</strong>'
+},
+'도박사의 럭키드로우': {
+    player: '<strong style="color: blue;">🎲 : 마지막 영혼을 담긴 펀치가 상대방에게 명중합니다!</strong>',
+    opponent: '<strong style="color: red;">🎲 : 마지막 영혼을 담긴 상대방의 펀치가 당신에게 명중합니다!</strong>'
+}
+
+            };
+
+            return skillTexts[skillName][isPlayer ? 'player' : 'opponent'];
+        }
+
+        // 데미지 텍스트 반환
+function getDamageText(isPlayer, damage) {
+    const texts = isPlayer ? playerDamageTexts : opponentDamageTexts[currentOpponent.name];
+    const color = isPlayer ? 'blue' : 'red'; // 플레이어는 파란색, 상대는 빨간색
+    return `<strong style="color: ${color};">${texts[Math.floor(Math.random() * texts.length)]}</strong>`;
+}
+
+
+        // 경합 상황 텍스트 반환
+        function getCompetitionText() {
+            return competitionTexts[Math.floor(Math.random() * competitionTexts.length)];
+        }
+
+        // 플레이어의 데미지 확률 계산
+        function getPlayerDamageChance(opponentLevel) {
+            switch(opponentLevel) {
+                case 1: return 0.60;
+                case 2: return 0.50;
+                case 3: return 0.40;
+                case 4: return 0.30;
+                case 5: return 0.20;
+                default: return 0.50;
+            }
+        }
+
+        // 텍스트 데이터
+        const playerDamageTexts = [
+            "👤 : 당신의 주먹이 적중하자, 상대의 눈빛이 순간 흔들리며 무너져 내립니다.",
+"👤 : 당신의 강력한 한 방이 상대의 턱을 꿰뚫으며, 경기는 점점 당신의 것으로 넘어갑니다.",
+"👤 : 당신의 무자비한 공격이 상대의 방어를 무너뜨리며, 그가 비틀거리는 순간이 포착됩니다.",
+"👤 : 당신의 속도와 파워가 한데 어우러지며, 상대는 피할 새도 없이 직격을 맞습니다.",
+"👤 : 당신이 품어온 분노가 주먹에 실리자, 상대는 그 자리에 무너져 내릴 듯 휘청거립니다.",
+"👤 : 당신의 주먹이 상대의 옆구리를 깊숙이 파고들며, 그가 고통에 찬 얼굴로 몸을 움츠립니다.",
+"👤 : 당신의 맹렬한 타격에 상대의 수비가 무력하게 부서지고, 그가 한 발짝 뒤로 밀려납니다.",
+"👤 : 당신의 회심의 일격이 상대의 복부를 가격하며, 그의 숨이 턱 끝에서 멈추는 순간이 포착됩니다.",
+"👤 : 당신의 주먹이 마치 불길처럼 상대의 몸을 휘감고, 그는 고통에 찬 비명을 참아냅니다.",
+"👤 : 당신의 날카로운 공격이 상대의 턱을 적중하며, 그의 고통스러운 숨소리가 점점 더 깊어집니다.",
+"👤 : 당신의 무자비한 연타에 상대는 더 이상 버틸 힘을 잃고 비틀거리며 뒤로 물러섭니다.",
+"👤 : 당신의 파괴적인 주먹이 상대의 몸을 가르고, 그의 얼굴에 잠시나마 공포가 스쳐 지나갑니다.",
+"👤 : 당신의 맹렬한 주먹이 상대의 방어를 부수며, 그가 고통 속에 주저앉을 기세를 보입니다.",
+"👤 : 당신의 치명적인 타격이 상대의 중심을 무너뜨리며, 그가 정신을 잃을 듯 비틀거립니다.",
+"👤 : 당신의 분노 어린 주먹이 상대의 복부를 깊숙이 파고들며, 그의 얼굴이 하얗게 질려갑니다.",
+"👤 : 당신의 정확한 일격이 상대의 턱을 적중하며, 그가 충격으로 눈앞이 흐려지는 듯합니다.",
+"👤 : 당신의 주먹이 상대의 옆구리를 강타하며, 그는 한 순간 숨을 들이쉴 틈도 없이 쓰러집니다.",
+"👤 : 당신의 폭풍 같은 연타에 상대의 방어는 순식간에 무너지고, 그가 공중에 떠오른 듯 비틀거립니다.",
+"👤 : 당신의 날카로운 주먹이 상대의 눈부신 수비를 찢고 들어가며, 그가 고통에 몸부림칩니다.",
+"👤 : 당신의 전율적인 한 방이 상대의 가슴을 찌르며, 그가 숨을 몰아쉬며 주저앉을 듯한 모습이 연출됩니다.",
+"👤 : 당신의 날카로운 주먹이 상대의 갈비뼈를 타격하며, 그는 고통에 찬 신음소리를 참아내지 못합니다.",
+"👤 : 당신의 폭발적인 공격에 상대의 방어는 무너지고, 그는 중심을 잃은 채 휘청거리기 시작합니다.",
+"👤 : 당신의 회심의 일격이 상대의 턱을 강타하며, 그의 눈빛에 한순간 공포가 스쳐 지나갑니다.",
+"👤 : 당신의 정확한 주먹이 상대의 명치를 강타하며, 그가 깊은 숨을 몰아쉬며 무너져 내립니다.",
+"👤 : 당신의 연속적인 타격에 상대는 뒤로 물러설 틈도 없이 깊은 충격을 받습니다.",
+"👤 : 당신의 강력한 오른손이 상대의 얼굴에 직격하며, 그가 비틀거리며 뒤로 넘어갈 듯 휘청거립니다.",
+"👤 : 당신의 무시무시한 주먹이 상대의 복부를 관통하듯 적중하며, 그의 얼굴이 일그러집니다.",
+"👤 : 당신의 강력한 일격이 상대의 몸을 타격하며, 그가 숨을 헐떡이며 고통을 억누릅니다.",
+"👤 : 당신의 주먹이 상대의 가슴을 강타하자, 그는 그 자리에 주저앉을 것처럼 보입니다.",
+"👤 : 당신의 가차 없는 타격이 상대의 턱을 가격하며, 그가 뒤로 물러서며 힘겹게 버팁니다.",
+"👤 : 당신의 번개 같은 주먹이 상대의 얼굴에 날아들며, 그의 눈에 혼란이 스치듯 보입니다.",
+"👤 : 당신의 강렬한 타격이 상대의 복부에 꽂히며, 그는 한동안 숨을 쉬지 못한 채 고통에 몸을 뒤틀립니다.",
+"👤 : 당신의 치명적인 주먹이 상대의 방어를 돌파하며, 그가 고통스럽게 몸을 움츠립니다.",
+"👤 : 당신의 날카로운 타격에 상대의 몸이 휘청거리며, 그가 힘겹게 중심을 잡으려 애씁니다.",
+"👤 : 당신의 강력한 펀치가 상대의 옆구리에 꽂히며, 그는 숨을 몰아쉬며 쓰러질 것처럼 흔들립니다.",
+"👤 : 당신의 일격이 상대의 가슴을 파고들며, 그의 눈빛에 패배의 그림자가 드리워집니다.",
+"👤 : 당신의 주먹이 상대의 복부를 관통하듯 적중하며, 그의 신음이 고통스럽게 울려 퍼집니다.",
+"👤 : 당신의 회심의 타격에 상대는 잠시 눈앞이 흐려지며, 그의 동작이 느려집니다.",
+"👤 : 당신의 무시무시한 일격이 상대의 얼굴에 박히며, 그가 고통에 몸을 휘청거리며 물러납니다.",
+"👤 : 당신의 강력한 펀치가 상대의 갈비뼈를 강타하며, 그가 충격에 숨을 몰아쉬며 뒤로 물러납니다.",
+"👤 : 당신의 폭풍 같은 주먹이 상대의 명치를 강타하자, 그는 숨을 몰아쉬며 무너져 내릴 듯한 모습을 보입니다.",
+"👤 : 당신의 무자비한 펀치가 상대의 턱을 적중하며, 그의 눈빛이 흔들리고 고통의 신음이 새어나옵니다.",
+"👤 : 당신의 강렬한 타격이 상대의 몸을 강타하며, 그가 휘청거리는 순간은 마치 시간이 느려진 듯 아찔합니다.",
+"👤 : 당신의 주먹이 상대의 갈비뼈에 깊게 파고들자, 그가 숨을 제대로 쉬지 못하며 움켜잡습니다.",
+"👤 : 당신의 일격이 상대의 복부에 꽂히며, 그의 얼굴이 순간 창백해지고 온몸이 긴장으로 떨립니다.",
+"👤 : 당신의 맹렬한 펀치가 상대의 턱을 강타하며, 그의 몸이 순간적으로 허공을 가릅니다.",
+"👤 : 당신의 가차 없는 공격이 상대의 얼굴에 박히며, 그가 뒤로 나가떨어질 듯 비틀거립니다.",
+"👤 : 당신의 치명적인 일격이 상대의 몸을 파고들자, 그가 숨을 몰아쉬며 쓰러질 듯한 모습을 보입니다.",
+"👤 : 당신의 강력한 주먹이 상대의 갈비뼈를 정통으로 강타하며, 그는 그 자리에 주저앉을 뻔합니다.",
+"👤 : 당신의 날카로운 펀치가 상대의 얼굴을 적중하며, 그가 잠시 멍하니 허공을 바라봅니다.",
+"👤 : 당신의 무시무시한 주먹이 상대의 턱에 정확히 꽂히며, 그의 고통스러운 신음이 경기장에 울려 퍼집니다.",
+"👤 : 당신의 한 방이 상대의 복부를 관통하듯 적중하자, 그는 깊은 고통 속에서 몸을 뒤틀며 중심을 잃습니다.",
+"👤 : 당신의 펀치가 상대의 명치를 강타하자, 그가 숨을 몰아쉬며 고통 속에서 비틀거립니다.",
+"👤 : 당신의 일격이 상대의 가슴을 파고들며, 그가 충격으로 뒤로 밀려나는 모습이 연출됩니다.",
+"👤 : 당신의 주먹이 상대의 옆구리를 강타하며, 그는 아픔을 참으려 하지만, 몸이 무너져 내릴 듯합니다.",
+"👤 : 당신의 강력한 타격이 상대의 턱을 꿰뚫으며, 그의 눈빛이 공포와 혼란으로 뒤덮입니다.",
+"👤 : 당신의 연속적인 주먹이 상대의 몸을 강타하며, 그는 더 이상 버티지 못하고 한 발짝 뒤로 물러납니다.",
+"👤 : 당신의 무자비한 공격에 상대의 방어가 무너지고, 그는 고통에 몸을 움켜쥔 채 주저앉습니다.",
+"👤 : 당신의 회심의 일격이 상대의 복부를 깊숙이 파고들자, 그는 긴 고통의 신음을 토해냅니다.",
+"👤 : 당신의 펀치가 상대의 얼굴에 적중하며, 그의 몸이 순식간에 뒤로 쏠리며 중심을 잃습니다.",
+"👤 : 당신의 날카로운 타격이 상대의 턱을 강타하며, 그의 몸이 허공을 가르듯 휘청거립니다.",
+"👤 : 당신의 치명적인 펀치가 상대의 갈비뼈에 꽂히며, 그는 숨을 제대로 쉴 수 없는 듯 고통스러워합니다.",
+"👤 : 당신의 무자비한 공격이 상대의 명치를 강타하자, 그의 얼굴이 순간적으로 일그러집니다.",
+"👤 : 당신의 강력한 주먹이 상대의 복부에 적중하며, 그는 깊은 고통 속에 몸을 뒤틀며 괴로워합니다.",
+"👤 : 당신의 날카로운 펀치가 상대의 턱을 강타하며, 그의 눈이 흐려지는 듯한 모습이 드러납니다.",
+"👤 : 당신의 폭발적인 타격에 상대의 방어가 완전히 무너지고, 그는 비틀거리며 뒤로 밀려납니다.",
+"👤 : 당신의 강력한 주먹이 상대의 얼굴을 직격하며, 그의 몸이 한순간에 무너져 내릴 듯 휘청거립니다.",
+"👤 : 당신의 주먹이 상대의 옆구리를 강타하며, 그의 눈에 절망의 그림자가 드리워집니다.",
+"👤 : 당신의 무자비한 펀치가 상대의 가슴을 파고들며, 그는 숨을 들이쉴 틈도 없이 몸을 움켜쥡니다.",
+"👤 : 당신의 강렬한 일격이 상대의 복부에 적중하며, 그가 마치 깊은 물속에서 몸부림치듯 괴로워합니다.",
+"👤 : 당신의 날카로운 펀치가 상대의 턱을 강타하며, 그의 눈이 흐려지는 듯한 모습이 보입니다.",  
+"👤 : 당신의 폭발적인 타격에 상대의 방어가 완전히 무너지고, 그는 비틀거리며 뒤로 물러섭니다.",  
+"👤 : 당신의 강력한 주먹이 상대의 얼굴을 직격하며, 그의 몸이 순식간에 무너져 내릴 듯 휘청거립니다.",  
+"👤 : 당신의 주먹이 상대의 옆구리를 강타하며, 그의 눈에 절망의 그림자가 드리워집니다.",  
+"👤 : 당신의 무자비한 펀치가 상대의 가슴을 파고들며, 그는 숨을 들이쉴 틈도 없이 몸을 움켜쥡니다.",  
+"👤 : 당신의 강렬한 일격이 상대의 복부에 적중하며, 그가 깊은 고통 속에서 몸을 뒤틀며 괴로워합니다.",  
+"👤 : 당신의 회심의 일격이 상대의 턱을 강타하며, 그의 몸이 허공을 가르듯 휘청거립니다.",  
+"👤 : 당신의 무자비한 연속 타격에 상대는 더 이상 버티지 못하고 한 발짝 뒤로 물러납니다.",  
+"👤 : 당신의 파괴적인 공격에 상대의 방어가 무너지고, 그는 고통에 몸을 움켜쥔 채 주저앉습니다.",  
+"👤 : 당신의 날카로운 펀치가 상대의 옆구리를 깊숙이 파고들자, 그는 아픔을 견디지 못하고 몸을 움츠립니다."
+            // ... 추가 텍스트
+        ];
+
+        const opponentDamageTexts = {
+            "몸치 댄서": [
+"🕺 : 몸치 댄서의 엉성한 스텝 속에서도 그의 주먹은 의외의 정확도로 당신의 턱을 강타합니다! 당신은 그 충격에 순간적으로 혼란에 빠집니다.",
+"🕺 : 어색한 몸짓 속에서 날아오는 그의 주먹은 마치 불규칙한 리듬처럼 갑작스레 당신의 복부를 가격합니다. 그 예상치 못한 힘에 기절할 듯합니다.",
+"🕺 : 몸치 댄서의 움직임이 둔탁하게 보이지만, 그 주먹은 당신의 방어를 찢고 들어오는 비수처럼 날카롭습니다! 당신은 피할 겨를이 없습니다.",
+"🕺 : 그의 엉성한 발끝이 흔들리다, 갑자기 솟아오른 주먹이 당신의 얼굴을 강타합니다! 마치 리듬을 잃은 춤 속에서의 폭풍처럼 강렬합니다.",
+"🕺 : 몸치 댄서가 마치 우연처럼 날린 주먹은 당신의 몸을 향해 곧장 날아오며, 그 힘은 예상을 뛰어넘습니다. 당신은 경악할 수밖에 없습니다.",
+"🕺 : 서툴러 보이는 그의 몸짓에 방심한 순간, 주먹이 당신의 가슴을 강하게 가격합니다. 그 힘은 무게감이 넘칩니다!",
+"🕺 : 몸치 댄서가 한 발자국 앞으로 나아가며 쏜 주먹은 마치 지친 춤꾼의 마지막 발악처럼 당신에게 돌진합니다. 그 일격에 당신은 털썩 주저앉습니다.",
+"🕺 : 그의 주먹이 예기치 않게 당신의 얼굴을 가격하며, 마치 공연 중 발생한 사고처럼 아찔함을 안겨줍니다. 당신은 순간적으로 멍해집니다.",
+"🕺 : 몸치 댄서의 주먹은 서툴고 불규칙하지만, 그 타격은 무시할 수 없는 힘을 지닙니다. 당신은 그 힘에 흔들립니다.",
+"🕺 : 그의 몸짓 속에서 불쑥 튀어나온 주먹이 당신의 턱을 가격하며, 마치 엉뚱한 재주가 강력한 힘으로 변모하는 순간을 경험합니다!",
+"🕺 : 몸치 댄서가 내리친 주먹은 마치 춤추던 날의 회상을 품고 당신의 복부에 충격을 가합니다. 그 아픔은 쉽게 잊혀지지 않을 것입니다.",
+"🕺 : 불안정한 균형 속에서 날아온 그의 주먹이 당신의 측면을 강타합니다. 당신은 그 의외의 타격에 숨이 턱 막힙니다.",
+"🕺 : 몸치 댄서의 주먹이 예상치 못한 방향에서 당신을 가격하며, 마치 오래된 기억을 끄집어내듯 아픔을 떠올리게 합니다.",
+"🕺 : 그의 몸짓 속에서 느껴지는 그 미숙함과 함께 날아온 주먹은 결국 당신의 방어를 뚫고 들어갑니다! 당신은 경악할 수밖에 없습니다.",
+"🕺 : 엉성하게 뒤틀리는 스텝 사이로 날아온 그의 주먹이 당신의 눈앞에서 섬광처럼 번쩍입니다! 당신은 그 순간을 잡을 수 없습니다.",
+"🕺 : 몸치 댄서의 불안정한 균형 속에서 튀어나온 주먹은 당신의 몸을 무자비하게 가격합니다. 그 일격은 예상치 못한 고통을 안겨줍니다.",
+"🕺 : 그의 주먹이 마치 느리게 움직이는 춤의 순간처럼 당신에게 직격합니다. 그 타격은 잊을 수 없는 충격으로 남습니다.",
+"🕺 : 몸치 댄서가 주먹을 휘두르는 순간, 마치 댄스의 클라이맥스처럼 당신의 몸을 강하게 흔들어놓습니다!",
+"🕺 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 잃어버린 리듬을 되찾으려는 듯한 열정이 느껴집니다. 그 힘에 당신은 위축됩니다.",
+"🕺 : 몸치 댄서의 주먹이 우연히 날아와 당신의 복부를 강타합니다. 그 일격은 예상하지 못한 순간에 다가와 충격을 줍니다."
+            ],
+            "엄격한 근로자": [
+"👷 : 엄격한 근로자가 정확히 당신의 허점을 파악하고, 무자비한 주먹을 꽂아넣습니다. 그의 노력은 결코 헛되지 않습니다.",
+"👷 : 근면과 성실로 단련된 그의 주먹이 당신의 몸에 닿는 순간, 노동의 무게가 그대로 전달됩니다.",
+"👷 : 마치 공장의 기계처럼 규칙적이고 정확한 타격이 당신의 얼굴에 떨어집니다. 그 힘은 한 치의 오차도 없습니다.",
+"👷 : 엄격한 근로자의 주먹이 당신의 복부에 내리칠 때, 그 일격은 마치 오랜 시간 쌓아온 인내의 결과물처럼 무겁고도 강렬합니다.",
+"👷 : 근로자의 주먹이 공기마저 가르며 당신의 방어를 뚫습니다. 그 한 방에 담긴 수고와 노력이 당신을 무너뜨립니다.",
+"👷 : 그는 결코 쉬지 않습니다. 당신에게 연속으로 꽂히는 그의 타격은 마치 노동자의 피와 땀으로 이루어진 결실처럼 치명적입니다.",
+"👷 : 엄격한 근로자의 주먹이 당신의 가슴을 강타합니다. 그가 들인 노력의 결실이 바로 이 순간입니다.",
+"👷 : 당신의 허점을 노려 정확히 주먹을 꽂아 넣는 근로자. 그의 일격은 마치 오랜 시간 쌓인 에너지가 폭발하듯 강렬합니다.",
+"👷 : 당신의 얼굴에 떨어지는 그의 주먹은 마치 매일 반복되는 노동의 무게가 담긴 망치와도 같습니다.",
+"👷 : 기계처럼 규칙적인 그의 타격은 멈추지 않고 당신을 무너뜨립니다. 그 누구도 그의 일관된 힘 앞에서 견딜 수 없습니다.",
+"👷 : 근로자의 주먹이 당신의 턱을 강타합니다. 마치 공장을 지배하는 거대한 기계처럼 그 움직임은 무겁고도 강력합니다.",
+"👷 : 한순간의 틈을 파고들며, 엄격한 근로자가 당신에게 치명적인 타격을 가합니다. 그 순간은 노동자의 승리의 순간입니다.",
+"👷 : 그의 주먹이 당신의 옆구리에 파고듭니다. 마치 오랜 시간 축적된 피로가 단번에 폭발하듯 당신은 무너집니다.",
+"👷 : 일의 흐름을 멈추지 않는 근로자의 손끝에서 나오는 힘이 당신을 강타합니다. 그 강렬한 타격은 피할 수 없습니다.",
+"👷 : 그는 멈추지 않습니다. 그의 노동은 끝없이 이어지고, 당신을 무너뜨리는 그의 주먹도 끊임없이 떨어집니다.",
+"👷 : 엄격한 근로자가 단호한 주먹으로 당신을 강타합니다. 그 힘은 오랜 시간 쌓인 노동의 집약체입니다.",
+"👷 : 그의 일격은 마치 무쇠같이 단단하고 확실합니다. 당신은 그의 주먹에 의해 서서히 무너져 내립니다.",
+"👷 : 근로자의 손끝에서 나오는 그 무게는 단순한 힘이 아니라, 노동의 결실이 주는 치명적인 무게입니다.",
+"👷 : 엄격한 근로자의 손끝에서 나오는 주먹이 당신의 방어를 무너뜨립니다. 그 힘은 시간을 초월한 인내와 노력의 결과입니다.",
+"👷 : 그는 규칙적으로 타격을 가하며 당신의 약점을 파고듭니다. 그의 주먹은 한 치의 오차도 없이 정확합니다."
+            ],
+            "바꿔치는 정비사": [
+"🧑‍🔧 : 정비사의 주먹이 당신의 방어를 완벽히 분석한 듯, 기계처럼 정교하게 들어가며 치명적인 타격을 가합니다!",
+"🧑‍🔧 : 부품을 교체하듯 정비사는 당신의 빈틈을 찾아내어 주먹을 정확히 꽂아넣습니다. 그 일격은 공기마저 흔들어 놓습니다.",
+"🧑‍🔧 : 그의 주먹은 마치 잘 맞물린 톱니바퀴처럼 당신의 턱을 꿰뚫습니다. 기계가 멈추듯 당신의 동작이 순간적으로 멈춥니다.",
+"🧑‍🔧 : 정비사의 주먹이 당신의 가슴에 내리꽂힙니다. 그 일격은 마치 엔진을 고치듯, 치밀하고도 강력합니다!",
+"🧑‍🔧 : 당신의 움직임을 분석한 정비사는 마치 오래된 기계를 수리하듯, 정확한 타이밍에 치명적인 타격을 가합니다.",
+"🧑‍🔧 : 마치 기계를 다루듯, 정비사의 주먹은 단 한 번의 오차도 없이 당신의 방어를 뚫고 나갑니다. 그 일격은 완벽합니다!",
+"🧑‍🔧 : 정비사는 마치 부품을 맞추는 듯, 주먹을 빠르게 교체해가며 당신의 얼굴을 연속적으로 강타합니다.",
+"🧑‍🔧 : 당신의 허점을 발견한 정비사의 주먹이 기계처럼 차가운 정확성을 발휘하며 안면을 강타합니다. 당신은 그 힘에 휘청입니다.",
+"🧑‍🔧 : 정비사의 손끝에서 터져 나오는 타격은 마치 튜닝이 완벽하게 끝난 엔진처럼 강렬하고도 빠르게 당신을 무너뜨립니다.",
+"🧑‍🔧 : 한순간도 망설임 없이, 정비사는 당신의 움직임을 읽고 빈틈을 파고듭니다. 그의 주먹은 톱니바퀴처럼 치밀하게 맞물립니다.",
+"🧑‍🔧 : 그의 주먹은 마치 당신을 부수고 새로 조립하듯, 정확히 당신의 약점을 파고들어 치명적인 타격을 가합니다.",
+"🧑‍🔧 : 정비사의 주먹은 당신의 몸을 한 치의 망설임 없이 강타합니다. 마치 고장 난 기계를 완벽하게 수리하는 장인의 손길 같습니다.",
+"🧑‍🔧 : 부드럽고도 정확한 정비사의 타격이 당신의 방어를 무너뜨립니다. 마치 단순한 기계적 작업이 아닌 예술 같은 주먹입니다!",
+"🧑‍🔧 : 정비사는 당신의 움직임을 완벽히 예측하며, 마치 오래된 엔진을 고치듯, 순간의 실수도 허락하지 않는 주먹을 날립니다.",
+"🧑‍🔧 : 당신의 방어가 허술해진 순간, 정비사의 주먹이 기계처럼 빠르고 정확하게 들어옵니다. 그 치명적인 타격에 당신은 흔들립니다.",
+"🧑‍🔧 : 정비사의 손끝에서 떨어지는 주먹은 마치 당신의 전투력을 새롭게 교체하듯, 모든 것을 무너뜨리고 재조립합니다.",
+"🧑‍🔧 : 한 치의 오차도 없이, 정비사의 타격이 당신의 방어를 뚫습니다. 그 일격은 마치 시간과 공간을 초월한 기계의 손길 같습니다.",
+"🧑‍🔧 : 당신의 허점을 노리는 정비사의 주먹은 차가운 철처럼 견고하고도 정확합니다. 그 일격에 당신은 쓰러질 수밖에 없습니다.",
+"🧑‍🔧 : 당신의 움직임을 분석한 정비사의 주먹이 마치 고장난 부품을 제거하듯 당신을 강타합니다. 그 충격은 치명적입니다.",
+"🧑‍🔧 : 정비사는 당신의 방어가 약해진 순간을 놓치지 않고, 마치 오래된 기계를 튜닝하듯 그의 주먹을 가차 없이 내리꽂습니다."
+            ],
+            "비범한 직장인": [
+            "🧑‍💼 : 비범한 직장인이 주먹을 휘두르며, 마치 일상적인 서류 작업처럼 정확히 당신의 얼굴에 꽂힙니다. 그 일격은 예리합니다.",
+"🧑‍💼 : 평범해 보이지만, 그의 주먹은 당신을 치명적으로 강타합니다. 마치 사무실에서 쌓인 스트레스가 폭발하듯!",
+"🧑‍💼 : 당신의 허점을 정확히 파악한 비범한 직장인이 그의 주먹을 날립니다. 그 타격은 예술적인 정확성으로 당신을 무너뜨립니다.",
+"🧑‍💼 : 그의 주먹은 마치 서류를 정리하듯 깔끔하게 당신의 방어를 정리해버립니다. 그 순간 당신은 당황스러움을 느낍니다.",
+"🧑‍💼 : 비범한 직장인의 일격은 마치 사무실의 규칙적인 일상처럼 예측할 수 없을 정도로 치밀하게 들어옵니다.",
+"🧑‍💼 : 사무실에서 쌓인 피로가 응축된 듯, 그의 주먹이 당신의 몸을 강타합니다. 그 힘은 예상 밖입니다.",
+"🧑‍💼 : 당신의 방어를 분석한 비범한 직장인이 그의 주먹을 마치 차트를 그리듯 정밀하게 당신에게 날립니다.",
+"🧑‍💼 : 비범한 직장인이 회의실에서의 결단처럼 주먹을 들어 올리고, 그 일격이 당신의 가슴에 강타합니다. 그 힘은 무겁습니다.",
+"🧑‍💼 : 일상적인 태도 속에서 터져 나오는 비범한 직장인의 타격은 당신을 무너뜨리기에 충분히 강력합니다.",
+"🧑‍💼 : 그의 주먹이 당신의 얼굴에 꽂히는 순간, 마치 회의 중 날아오는 갑작스러운 질문처럼 충격적입니다.",
+"🧑‍💼 : 비범한 직장인의 치밀한 계획 속에서 날아온 그의 주먹은 당신의 방어를 뚫고 들어갑니다. 그 일격은 절묘합니다.",
+"🧑‍💼 : 직장인의 손끝에서 나오는 그 타격은 마치 일상을 벗어난, 비범한 무언가가 숨어 있는 듯한 강렬함이 있습니다.",
+"🧑‍💼 : 서류를 넘기듯 깔끔하게 주먹을 날리는 직장인, 그의 타격이 당신의 복부에 꽂히며 숨을 멎게 만듭니다.",
+"🧑‍💼 : 비범한 직장인의 눈빛이 차분하지만, 그의 주먹은 격렬하게 당신의 방어를 무너뜨립니다. 그 속에 숨겨진 힘은 대단합니다.",
+"🧑‍💼 : 비범한 직장인의 일격은 당신의 몸을 관통하며, 마치 일상적인 반복 속에서 터져 나오는 격렬한 분노처럼 폭발적입니다.",
+"🧑‍💼 : 그의 주먹은 마치 서류작업 중 돌연히 터져 나오는 아이디어처럼 예리하고 강렬합니다. 당신은 그 일격을 피할 수 없습니다.",
+"🧑‍💼 : 비범한 직장인의 한 방이 당신의 방어를 찢습니다. 마치 차분한 서류 더미 속에서 빛나는 날카로운 칼 같습니다.",
+"🧑‍💼 : 그의 주먹이 당신의 복부를 강타하며, 그 안에 담긴 직장인의 고요한 분노가 그대로 전해집니다.",
+"🧑‍💼 : 당신의 움직임을 읽어낸 비범한 직장인은 차분히 주먹을 들어 올리고, 치밀한 계획 속에서 치명적인 일격을 가합니다.",
+"🧑‍💼 : 비범한 직장인의 타격은 마치 규칙적인 하루 속에서 찾아오는 예기치 못한 돌발 상황처럼, 당신을 완전히 무너뜨립니다."
+            ],
+            "든든한 근위병": [
+"💂 : 든든한 근위병이 성벽을 수호하듯, 당신의 방어를 무너뜨리며 강력한 주먹을 날립니다! 그 충격에 경기장이 흔들립니다.",  
+"💂 : 성문을 두드리듯, 근위병의 강력한 주먹이 당신의 안면을 강타합니다! 마치 대지를 울리는 북소리처럼 울려 퍼집니다.",  
+"💂 : 든든한 근위병의 일격은 무거운 철퇴처럼 떨어져, 당신의 몸을 휘청이게 만듭니다. 그 누구도 그의 힘을 가볍게 볼 수 없습니다!",  
+"💂 : 철벽 방어의 대가인 근위병이 단 한 순간의 허점을 노려, 당신의 심장 가까이 타격을 날립니다! 그 무게감이 치명적입니다.",  
+"💂 : 전장을 가로지르는 전사의 함성처럼, 근위병의 주먹이 당신의 가슴에 강렬하게 꽂힙니다! 그 울림은 경기장을 지배합니다.",  
+"💂 : 방패로 적을 막아내듯, 근위병은 당신의 공격을 막아낸 뒤 치명적인 반격을 가합니다. 당신은 그 무게에 무릎을 꿇을 듯합니다.",  
+"💂 : 철제 갑옷을 입은 듯한 근위병의 주먹이 당신의 몸을 강타합니다. 마치 요새를 지키는 강인함이 그의 팔끝에 서려있습니다.",  
+"💂 : 든든한 근위병의 주먹이 공기마저 가르며 당신의 얼굴을 직격합니다. 그의 위력은 한낱 인간의 그것을 넘어섭니다!",  
+"💂 : 당신의 공격을 가볍게 피하며 근위병이 방패처럼 주먹을 내리칩니다. 그 무게감은 누구도 견딜 수 없습니다!",  
+"💂 : 근위병의 힘찬 공격이 성벽을 부수듯 당신의 방어를 무너뜨립니다. 그 앞에 선 자는 오로지 패배만을 맞이할 뿐입니다.",  
+"💂 : 당신의 가슴팍을 노리는 근위병의 주먹은 마치 무너지는 성벽처럼 묵직하게 내리쳐집니다. 한순간 숨이 막힙니다!",  
+"💂 : 성을 수호하는 전사의 눈빛이 당신을 뚫고 들어옵니다. 그의 일격은 철벽처럼 단단하고 강력합니다.",  
+"💂 : 든든한 근위병이 당신의 옆구리에 파고드는 순간, 당신은 전쟁의 한가운데에 서 있는 듯한 공포를 느낍니다!",  
+"💂 : 당신의 얼굴에 내리꽂히는 근위병의 주먹은 마치 성벽을 부수는 망치처럼 무겁고 위협적입니다!",  
+"💂 : 그의 손끝에서 터져 나오는 힘은 전사의 기개 그 자체입니다. 당신은 그 무게에 짓눌릴 수밖에 없습니다.",  
+"💂 : 근위병의 치명적인 주먹이 당신의 명치를 강타합니다. 그 순간 당신의 숨이 차단되는 듯한 고통이 느껴집니다.",  
+"💂 : 전장의 용사처럼, 근위병이 당신의 방어선을 단번에 뚫고 치명타를 가합니다. 당신은 그 힘에 휘청입니다.",  
+"💂 : 강철 같은 주먹이 당신의 복부를 강타하며, 그 충격에 당신의 숨소리가 거칠어집니다.",  
+"💂 : 근위병의 주먹이 단단한 성문을 부수듯 당신의 몸에 꽂힙니다. 그 누구도 그 일격을 막아낼 수 없습니다.",  
+"💂 : 전투의 선봉에 서서, 든든한 근위병이 당신에게 압도적인 힘을 발휘합니다. 그의 주먹은 마치 전장을 지배하는 듯합니다!"  
+            ],
+            "비즈니스 골프선수": [
+"🏌️ : 비즈니스 골프선수가 당신의 방어를 뚫고, 마치 퍼팅을 하듯 섬세한 타격을 가합니다! 그 정확성에 당신은 경악합니다.",  
+"🏌️ : 그가 날린 주먹은 마치 골프공이 홀에 들어가는 순간처럼 부드럽고도 강력하게 당신의 복부를 가격합니다. 당신은 그 힘에 기절할 듯합니다.",  
+"🏌️ : 비즈니스 골프선수가 주먹을 휘두르며, 마치 골프 스윙처럼 매끄럽고도 결정적인 타격을 가합니다! 당신은 피할 수 없습니다.",  
+"🏌️ : 그의 손끝에서 날아온 주먹은 당신의 턱을 가격하며, 마치 대회에서의 승리처럼 치명적입니다. 당신은 그 힘에 주저앉습니다.",  
+"🏌️ : 골프공을 맞추듯 정확한 비즈니스 골프선수의 주먹이 당신을 향해 날아오며, 그 타격은 미소 속에 숨겨진 분노입니다.",  
+"🏌️ : 비즈니스 골프선수가 날린 주먹은 마치 골프 코스에서의 비거리처럼 힘차게 당신의 몸을 강타합니다! 그 일격은 멈출 수 없습니다.",  
+"🏌️ : 그의 주먹이 당신의 복부를 강타하며, 마치 퍼터의 정확한 손길이 그 무엇도 방해할 수 없는 듯합니다.",  
+"🏌️ : 비즈니스 골프선수의 날카로운 주먹이 당신의 턱을 가격하며, 그 힘은 마치 드라이버로 공을 치는 순간의 강렬함과 같습니다.",  
+"🏌️ : 골프의 품격을 지닌 그의 타격은 당신의 방어를 꿰뚫고 들어오며, 그 순간의 압박감은 마치 긴장감 넘치는 대회와 같습니다.",  
+"🏌️ : 그의 주먹이 예상치 못한 방향에서 강타하며, 마치 골프 티를 세우듯이 당신의 몸을 제압합니다. 그 일격은 두렵습니다.",  
+"🏌️ : 비즈니스 골프선수가 정교하게 날린 주먹은 당신의 얼굴을 강타하며, 마치 승리를 확신한 스윙처럼 위압적입니다!",  
+"🏌️ : 골프 스윙처럼 부드럽게 날아온 그의 주먹이 당신의 복부를 강타합니다. 그 충격에 당신은 몸을 움츠립니다.",  
+"🏌️ : 비즈니스 골프선수의 주먹은 마치 골프장 위에서 휘둘러지는 클럽처럼 힘차고도 섬세하게 당신을 가격합니다.",  
+"🏌️ : 그의 타격이 당신의 방어를 뚫고 들어오는 순간, 마치 잔디 위에서 이루어지는 긴장감 넘치는 경기를 떠올리게 합니다.",  
+"🏌️ : 비즈니스 골프선수의 날카로운 주먹이 당신의 가슴에 꽂히며, 마치 자신감 넘치는 퍼팅처럼 뚝딱 소리와 함께 강하게 직격합니다.",  
+"🏌️ : 그의 주먹이 당신의 턱을 가격하는 순간, 그 압박은 마치 필드에서의 승리를 쟁취하기 위한 필사적인 노력 같습니다.",  
+"🏌️ : 비즈니스 골프선수가 방심한 당신을 강타하며, 마치 신중한 골프 스윙의 정점에서 터져 나오는 폭발적 힘과 같습니다.",  
+"🏌️ : 주먹이 마치 골프공을 향해 정통으로 날아가는 듯, 당신의 방어를 뚫고 들어오며 충격을 가합니다. 당신은 무방비 상태입니다.",  
+"🏌️ : 비즈니스 골프선수의 일격은 마치 대회에서의 결정적인 순간처럼 강렬합니다! 그 힘에 당신은 견디기 힘듭니다.",  
+"🏌️ : 그의 주먹이 정확하게 당신의 몸을 타격하며, 마치 골프공이 홀에 들어가는 짜릿한 순간과 같습니다. 그 충격이 여운을 남깁니다."
+            ],
+            "살인의 용접공": [
+"🧑‍🏭 : 살인의 용접공이 뜨거운 불꽃처럼 주먹을 내리꽂습니다. 당신은 그 타격에 녹아내리는 듯한 고통을 느낍니다!",  
+"🧑‍🏭 : 당신의 방어를 용접하듯 정교하게 뚫고 들어오는 그의 주먹은 불꽃을 뿜으며 당신을 무너뜨립니다.",  
+"🧑‍🏭 : 살인의 용접공이 날카로운 열기처럼 빠르게 당신의 얼굴을 강타합니다. 그 뜨거움에 당신은 숨을 삼킵니다.",  
+"🧑‍🏭 : 그의 주먹이 쇠를 녹이듯 당신의 방어를 태워버립니다. 마치 불꽃 속에서 깨어난 거대한 괴물의 힘 같습니다.",  
+"🧑‍🏭 : 용접공의 타격이 당신의 가슴을 강타합니다. 그 열기는 당신의 몸을 불태우고, 그 충격에 경기가 멈추는 듯합니다.",  
+"🧑‍🏭 : 그의 주먹이 쇠처럼 무겁고 뜨겁게 당신의 턱을 강타합니다. 그 일격은 마치 불꽃 속에서 단련된 망치처럼 강렬합니다.",  
+"🧑‍🏭 : 용접공의 주먹이 당신의 몸을 뜨거운 열기로 감싸듯 타격합니다. 그 힘에 당신은 견디기 어려운 고통을 느낍니다.",  
+"🧑‍🏭 : 용접공의 주먹이 당신의 허점을 꿰뚫고, 마치 쇠를 녹이듯 당신의 방어를 녹여버립니다. 당신은 그 앞에 무력합니다.",  
+"🧑‍🏭 : 용접 작업을 하듯 그의 주먹이 당신의 복부에 불꽃을 날리며 내리꽂힙니다. 그 힘은 당신을 쓰러뜨리기 충분합니다.",  
+"🧑‍🏭 : 살인의 용접공이 주먹을 들어올릴 때, 마치 불꽃이 일어나는 듯한 열기가 공기 중에 감돕니다. 그 타격은 치명적입니다.",  
+"🧑‍🏭 : 그의 타격은 마치 불꽃 속에서 연마된 칼처럼 날카롭고 치명적입니다. 당신은 그 일격에 온몸이 타는 듯한 고통을 느낍니다.",  
+"🧑‍🏭 : 용접공이 당신의 옆구리를 강타합니다. 그 주먹은 마치 뜨거운 불길이 당신의 몸을 휘감듯 타격을 가합니다.",  
+"🧑‍🏭 : 당신의 방어를 녹여버리는 용접공의 주먹은 거대한 불덩어리처럼 뜨겁습니다. 당신은 그 힘에 무너져 내립니다.",  
+"🧑‍🏭 : 쇠를 녹이는 불길처럼 그의 주먹이 당신의 턱을 직격합니다. 그 일격은 피할 수 없는 숙명입니다.",  
+"🧑‍🏭 : 용접공의 주먹이 마치 뜨거운 불꽃처럼 당신의 가슴을 타격합니다. 그 일격은 치명적인 열기를 남깁니다.",  
+"🧑‍🏭 : 그의 주먹이 불길을 타고 당신의 몸을 강타합니다. 마치 녹아내리는 쇠처럼 당신의 방어가 무너집니다.",  
+"🧑‍🏭 : 당신의 얼굴에 내리꽂히는 용접공의 주먹은 마치 쇠를 녹이는 불꽃처럼 치명적입니다. 그 충격에 당신은 무력합니다.",  
+"🧑‍🏭 : 살인의 용접공이 주먹을 휘두르는 순간, 불꽃이 일렁이며 당신의 방어를 가차 없이 무너뜨립니다.",  
+"🧑‍🏭 : 그의 타격은 마치 뜨거운 쇳덩이가 당신의 몸을 강타하는 듯합니다. 그 충격에 당신은 정신을 차리기 어려워집니다.",  
+"🧑‍🏭 : 용접공의 주먹이 당신의 방어를 뚫고 들어오며, 마치 철을 녹이는 뜨거운 불길처럼 당신을 휘감습니다. 당신은 그 앞에 속수무책입니다."    
+            ],
+            "클릭을 모르는 직원": [
+"🧑‍💻 : 클릭을 모르는 직원의 주먹이 날아오며, 마치 잃어버린 시간을 되찾으려는 듯 한가득 쌓인 아쉬움을 담고 있습니다! 그 충격은 믿을 수 없을 정도로 날카롭습니다.",  
+"🧑‍💻 : 그의 주먹이 당신의 복부를 강타하며, 마치 정해진 수순을 따르지 못한 채 놓쳐버린 순간처럼 뼈아픈 아픔을 남깁니다.",  
+"🧑‍💻 : 클릭을 모르는 직원이 날린 주먹은 마치 잘못된 버튼을 누른 듯한 실수의 대가처럼 강력하게 당신을 가격합니다.",  
+"🧑‍💻 : 그의 주먹이 당신의 얼굴을 가격하는 순간, 마치 시대의 흐름을 놓친 자의 고통이 그대로 드러나는 듯합니다!",  
+"🧑‍💻 : 클릭을 모르는 직원의 공격이 당신의 턱을 가격하며, 마치 미처 깨닫지 못한 불행의 한가운데에 서게 합니다. 그 아픔은 잊을 수 없습니다.",  
+"🧑‍💻 : 그의 주먹이 당신의 가슴을 강타하며, 마치 지연된 결과가 고스란히 느껴지는 순간처럼 참혹합니다!",  
+"🧑‍💻 : 클릭을 모르는 직원이 내리친 주먹은 마치 실패한 프로젝트의 여파처럼 강렬하게 당신을 압도합니다.",  
+"🧑‍💻 : 그의 공격이 당신을 향해 날아오며, 마치 지쳐가는 시대 속에서 잃어버린 열정의 상징처럼 느껴집니다.",  
+"🧑‍💻 : 클릭을 모르는 직원의 주먹이 당신의 복부를 가격하며, 마치 잘못된 선택의 결과가 남겨지는 듯한 고통을 안겨줍니다!",  
+"🧑‍💻 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 저항할 수 없는 압박감으로 가득 차오르는 순간처럼 아픕니다.",  
+"🧑‍💻 : 클릭을 모르는 직원이 날린 주먹은 마치 흐트러진 메모리 속에서 잊혀진 사실처럼 날카롭게 당신을 강타합니다!",  
+"🧑‍💻 : 그의 공격이 당신의 가슴을 가격하며, 마치 시간에 쫓기는 듯한 불안감이 떠오릅니다. 그 아픔은 무시할 수 없습니다.",  
+"🧑‍💻 : 클릭을 모르는 직원의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 잃어버린 기회의 대가를 치르는 듯합니다.",  
+"🧑‍💻 : 그의 주먹이 날아와 당신을 향해 날카롭게 가격하며, 마치 잘못된 클릭이 초래한 결과처럼 아프게 남습니다!",  
+"🧑‍💻 : 클릭을 모르는 직원이 내리친 주먹은 마치 매일같이 쌓이는 스트레스의 상징처럼 당신을 압도합니다.",  
+"🧑‍💻 : 그의 공격이 당신을 강타하며, 마치 시대의 흐름 속에서 잃어버린 가치를 느끼게 합니다. 그 아픔은 깊고 잊을 수 없습니다.",  
+"🧑‍💻 : 클릭을 모르는 직원이 날린 주먹은 마치 번잡한 작업 속에서 느끼는 막막함처럼 잔혹하게 당신을 가격합니다.",  
+"🧑‍💻 : 그의 주먹이 당신의 복부를 가격하며, 마치 놓치고 싶은 기회를 되찾기 위해 내딛는 발걸음처럼 아프고 고통스럽습니다.",  
+"🧑‍💻 : 클릭을 모르는 직원의 주먹이 당신의 얼굴을 가격하며, 그 충격은 마치 정해진 궤도를 벗어난 듯한 혼란을 남깁니다.",  
+"🧑‍💻 : 그의 공격이 당신을 강타하며, 마치 체계 속에서 발생하는 작은 오류가 큰 재앙으로 번지는 듯한 절망감을 안겨줍니다."  
+            ],
+            "날렵한 스트릿 댄서": [
+"🤸 : 날렵한 스트릿 댄서의 주먹이 당신의 얼굴을 스치며, 마치 스포트라이트를 받는 듯한 찰나의 순간이 느껴집니다!",  
+"🤸 : 그의 공격이 당신의 턱을 가격하며, 마치 춤을 추듯 유연하고 강렬한 타격을 남깁니다.",  
+"🤸 : 날렵한 스트릿 댄서의 주먹이 공중에서 날아와 당신을 강타하며, 그 속도는 마치 바람처럼 스쳐 지나갑니다.",  
+"🤸 : 그의 공격이 당신의 복부를 가격하며, 마치 전율이 일어나는 듯한 깊은 충격을 안겨줍니다!",  
+"🤸 : 날렵한 스트릿 댄서가 회전하며 날린 주먹은 마치 예술작품처럼 당신의 얼굴을 강타합니다!",  
+"🤸 : 그의 주먹이 당신의 가슴을 가격하는 순간, 마치 정교한 춤사위를 방불케 하는 유연함이 느껴집니다.",  
+"🤸 : 날렵한 스트릿 댄서의 공격이 당신의 복부를 강타하며, 그 충격은 마치 파도처럼 밀려오는 강렬함을 줍니다!",  
+"🤸 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 삶의 모든 복잡함을 일순간에 단순화하는 듯한 순간이 펼쳐집니다.",  
+"🤸 : 날렵한 스트릿 댄서의 주먹이 당신의 턱을 가격하며, 그 힘은 마치 격렬한 비트의 리듬처럼 느껴집니다.",  
+"🤸 : 그의 공격이 당신의 가슴을 가격하며, 마치 전통과 현대가 뒤섞인 듯한 복잡한 감정을 남깁니다!",  
+"🤸 : 날렵한 스트릿 댄서의 주먹이 당신의 얼굴을 가격하며, 그 충격은 마치 무대 위에서 펼쳐지는 공연처럼 강렬합니다.",  
+"🤸 : 그의 공격이 당신의 복부를 강타하며, 마치 감정을 고스란히 담아낸 표현의 순간이 다가옵니다.",  
+"🤸 : 날렵한 스트릿 댄서의 주먹이 당신의 턱을 가격하며, 마치 마법처럼 다가오는 타격에 감탄하게 됩니다!",  
+"🤸 : 그의 주먹이 당신의 얼굴을 가격하는 순간, 그 강렬함은 마치 삶의 의미를 드러내는 듯한 아픔이 느껴집니다.",  
+"🤸 : 날렵한 스트릿 댄서의 주먹이 당신의 가슴을 강타하며, 마치 무언가가 깨져버리는 듯한 소리가 울려 퍼집니다.",  
+"🤸 : 그의 공격이 당신의 복부를 가격하며, 마치 경계를 허물고 들어오는 힘의 압박을 느끼게 합니다!",  
+"🤸 : 날렵한 스트릿 댄서의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 삶의 모든 감정을 담아내는 듯합니다.",  
+"🤸 : 그의 주먹이 당신의 턱을 가격하는 순간, 마치 불꽃처럼 타오르는 강렬함이 느껴집니다!",  
+"🤸 : 날렵한 스트릿 댄서의 공격이 당신을 강타하며, 마치 치열한 리듬 속에서의 경합이 펼쳐지는 듯합니다.",  
+"🤸 : 그의 주먹이 당신의 복부를 가격하며, 마치 숨막히는 순간에 담긴 감정이 강렬하게 스쳐 지나갑니다."   
+            ],
+            "재미없는 광대": [
+"🤹 : 재미없는 광대의 주먹이 날아오며, 마치 웃음 뒤에 숨겨진 슬픔이 터지는 순간처럼 강렬하게 당신을 강타합니다! 그 충격은 참혹하게 다가옵니다.",
+"🤹 : 그의 주먹이 당신의 복부를 강타하며, 마치 웃음의 가면이 벗겨진 듯한 고통을 느끼게 합니다.",
+"🤹 : 재미없는 광대의 날카로운 공격이 당신의 가슴을 가격하며, 그 순간은 마치 잊히고 싶은 과거의 고통이 드러나는 듯합니다.",
+"🤹 : 그의 주먹이 당신의 얼굴을 가격하는 순간, 마치 조롱받는 순간들이 되살아나는 듯한 아픔이 가득 차오릅니다!",
+"🤹 : 재미없는 광대의 공격이 당신의 턱을 가격하며, 마치 웃음의 정체가 드러나는 듯한 강렬함을 느끼게 합니다.",
+"🤹 : 그의 주먹이 당신의 가슴을 강타하며, 마치 웃음의 이유를 잃은 듯한 깊은 슬픔을 남깁니다!",
+"🤹 : 재미없는 광대가 날린 주먹은 마치 공허한 웃음소리처럼 강렬하게 당신을 향해 다가옵니다. 그 힘에 당신은 움츠러듭니다.",
+"🤹 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 축제의 분위기가 무너지는 듯한 기분이 드러납니다!",
+"🤹 : 재미없는 광대의 날카로운 공격이 당신을 향해 날아오며, 그 아픔은 마치 기분 좋은 웃음이 끊기는 순간처럼 느껴집니다.",
+"🤹 : 그의 주먹이 당신의 가슴을 가격하며, 마치 과거의 슬픔이 떠오르는 듯한 깊은 충격을 남깁니다!",
+"🤹 : 재미없는 광대가 내리친 주먹은 마치 잊혀진 웃음의 그림자처럼 당신을 압도합니다. 그 순간은 고통으로 가득 차 있습니다.",
+"🤹 : 그의 공격이 당신을 강타하며, 마치 진정한 웃음이 사라진 세상에서의 외로움이 느껴집니다.",
+"🤹 : 재미없는 광대의 주먹이 당신의 턱을 가격하며, 그 충격은 마치 조롱받는 자의 고통을 그대로 드러내는 듯합니다.",
+"🤹 : 그의 주먹이 날아와 당신의 얼굴을 가격하며, 마치 웃음의 희생자가 되는 듯한 고통을 느끼게 합니다!",
+"🤹 : 재미없는 광대의 공격이 당신의 복부를 강타하며, 마치 잃어버린 행복의 대가가 남겨지는 듯한 강렬함을 남깁니다.",
+"🤹 : 그의 주먹이 당신의 가슴을 강타하며, 마치 웃음의 정체를 알아차린 듯한 깊은 슬픔이 스며듭니다.",
+"🤹 : 재미없는 광대가 내리친 주먹은 마치 웃음 속에 감춰진 비극처럼 당신을 강타합니다!",
+"🤹 : 그의 공격이 당신을 강타하며, 마치 미소 뒤에 감춰진 슬픔이 폭발하는 듯한 아픔이 느껴집니다.",
+"🤹 : 재미없는 광대의 주먹이 당신의 얼굴을 가격하며, 그 충격은 마치 세상의 웃음이 사라지는 듯한 고통으로 남습니다.",
+"🤹 : 그의 공격이 당신을 강타하며, 마치 무너지는 웃음의 세계 속에서의 고독감이 느껴집니다."
+            ],
+            "변절한 경찰": [
+"👮 : 변절한 경찰이 날린 주먹은 마치 반역자의 칼날처럼 날카롭고도 무자비하게 당신의 가슴을 가격합니다! 그 아픔은 절망적입니다.",  
+"👮 : 그의 주먹이 당신의 얼굴을 강타하며, 마치 정의를 저버린 자의 마지막 외침처럼 강렬한 충격이 남습니다.",  
+"👮 : 변절한 경찰의 주먹이 당신의 복부를 가격하며, 그 순간은 마치 무거운 진실을 마주하는 듯한 무게감이 있습니다.",  
+"👮 : 그의 날카로운 공격이 당신을 향해 날아오며, 마치 잃어버린 신뢰의 마지막 파편처럼 아프게 찌릅니다!",  
+"👮 : 변절한 경찰이 내리친 주먹은 마치 철의 심장을 지닌 자의 일격처럼 당신을 압도합니다. 그 힘에 당신은 움츠러듭니다.",  
+"👮 : 그의 주먹이 당신의 턱을 가격하며, 마치 배신의 상징처럼 그 아픔이 깊이 스며듭니다.",  
+"👮 : 변절한 경찰의 공격이 당신을 강타하며, 마치 부패한 권력의 칼날처럼 잔혹하게 찌릅니다! 그 순간, 당신은 모든 것을 잃은 듯한 기분입니다.",  
+"👮 : 그의 주먹이 당신의 복부를 가격하며, 마치 진실을 숨기려는 자의 마지막 발악처럼 깊고도 절박한 아픔이 느껴집니다.",  
+"👮 : 변절한 경찰이 날린 주먹은 마치 어둠 속에서의 배신처럼 날카롭게 당신을 겨냥합니다. 그 충격은 피할 수 없는 운명입니다.",  
+"👮 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 잊혀진 정의의 목소리처럼 아프고도 쓸쓸합니다. 당신은 그 힘에 압도됩니다.",  
+"👮 : 변절한 경찰의 날카로운 공격이 당신의 가슴을 가격하며, 마치 진실을 외면한 자의 마지막 순간처럼 아프게 다가옵니다!",  
+"👮 : 그의 주먹이 날아오며, 마치 배신자의 굳건한 결의처럼 강렬하게 당신을 강타합니다. 그 순간, 당신은 어쩔 수 없는 고통을 느낍니다.",  
+"👮 : 변절한 경찰이 내리친 주먹은 마치 숨겨진 진실을 드러내는 듯한 강렬함을 지니고, 당신은 그 아픔에 압도됩니다!",  
+"👮 : 그의 주먹이 당신의 턱을 가격하며, 마치 잃어버린 정의의 증인처럼 아프게 남습니다. 당신은 방어할 틈이 없습니다.",  
+"👮 : 변절한 경찰의 주먹이 당신의 복부를 가격하며, 마치 배신자의 냉혹한 웃음소리처럼 섬뜩한 충격이 일어납니다.",  
+"👮 : 그의 공격이 당신을 강타하며, 마치 부정의 화신이 쏘아 보낸 마법처럼 잔혹하게 스며듭니다. 당신은 더욱 고통스러워집니다.",  
+"👮 : 변절한 경찰이 내리친 주먹은 마치 정의를 저버린 자의 칼날처럼 날카롭게 당신을 겨냥합니다. 그 아픔은 잊을 수 없습니다.",  
+"👮 : 그의 주먹이 당신의 가슴을 가격하며, 마치 마법처럼 배신의 힘을 실감하게 합니다! 그 순간은 불가피한 운명입니다.",  
+"👮 : 변절한 경찰의 주먹이 당신의 얼굴을 가격하며, 그 충격은 마치 잃어버린 정의의 마지막 외침처럼 깊고도 절박합니다.",  
+"👮 : 그의 공격이 당신의 몸을 타격하며, 마치 부패한 사회의 마지막 외침처럼 강렬하게 당신을 압도합니다!"   
+            ],
+            "탐관오리 2세": [
+"🫅 : 탐관오리 2세가 당신의 허를 찌르며, 마치 수면 아래에서의 불길처럼 날카로운 주먹을 발사합니다! 그 충격에 당신은 미처 방어할 틈이 없습니다.",  
+"🫅 : 그의 주먹이 당신의 복부를 정통으로 가격하며, 마치 배신의 회오리처럼 파고듭니다. 그 아픔은 깊고도 잔혹합니다!",  
+"🫅 : 탐관오리 2세의 공격은 마치 은밀한 음모처럼 당신에게 다가오며, 그 주먹이 당신의 턱을 가격하는 순간, 당신은 아무것도 느끼지 못합니다.",  
+"🫅 : 그의 주먹이 마치 유려한 수로를 따라 흐르듯 당신의 가슴을 가격합니다. 그 통증은 반격할 힘을 앗아갑니다!",  
+"🫅 : 탐관오리 2세가 강력한 일격을 날리며, 당신은 마치 수면 아래에서 빠져나가려는 물고기처럼 발버둥칩니다!",  
+"🫅 : 그의 공격은 기습처럼 날아와 당신의 얼굴을 강타하며, 마치 배신자의 함정에서 빠져나가는 듯한 기분을 느끼게 합니다.",  
+"🫅 : 탐관오리 2세의 주먹이 당신의 턱을 가격하며, 그 힘은 마치 권력을 쥔 자의 압박처럼 잔혹합니다. 당신은 혼란에 빠집니다.",  
+"🫅 : 그의 주먹이 당신의 복부를 가격하며, 마치 결정적인 순간의 음모처럼 강렬한 아픔을 안겨줍니다.",  
+"🫅 : 탐관오리 2세의 날카로운 공격이 당신의 방어를 뚫고 들어오며, 마치 마법처럼 치명적입니다! 당신은 반격할 기회를 잃었습니다.",  
+"🫅 : 그의 주먹이 당신의 가슴을 가격하며, 마치 어둠 속에서의 배신처럼 공포를 느끼게 합니다. 당신은 그 힘에 압도됩니다.",  
+"🫅 : 탐관오리 2세의 주먹이 당신을 강타하며, 그 타격은 마치 권력의 칼날처럼 무자비합니다. 당신은 혼란스럽습니다.",  
+"🫅 : 그의 공격은 마치 깊은 물속에서의 맹렬한 유영처럼 날카롭고도 강력합니다! 당신은 그 속도에 대응할 수 없습니다.",  
+"🫅 : 탐관오리 2세의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 운명의 선택처럼 필연적입니다. 당신은 놀랄 수밖에 없습니다.",  
+"🫅 : 그의 주먹이 날아오며, 마치 전쟁의 소용돌이 속으로 빨려드는 듯한 강렬함을 동반합니다. 당신은 그 일격에 흔들립니다.",  
+"🫅 : 탐관오리 2세가 당신의 약점을 파고들며, 마치 계산된 음모처럼 섬세하게 타격을 가합니다. 그 통증은 쉽게 잊혀지지 않을 것입니다.",  
+"🫅 : 그의 주먹이 당신의 복부를 가격하며, 그 충격은 마치 스릴 넘치는 스릴러 소설의 클라이맥스 같습니다! 당신은 정신이 아득해집니다.",  
+"🫅 : 탐관오리 2세가 내리친 주먹은 마치 배신자의 회심의 일격처럼 날카롭고도 매서운 아픔을 가져옵니다!",  
+"🫅 : 그의 날카로운 공격이 당신의 몸을 타격하며, 마치 어둠 속의 음모가 폭발하는 듯한 강렬함을 안겨줍니다.",  
+"🫅 : 탐관오리 2세의 주먹이 당신의 턱을 가격하며, 마치 끔찍한 진실을 마주하는 듯한 절망감을 안겨줍니다.",  
+"🫅 : 그의 주먹이 당신의 가슴을 강타하며, 그 힘은 마치 권력을 쥐고 있는 자의 포효처럼 압도적입니다! 당신은 이기기 힘듭니다."
+            ],
+            "귀찮은 산타": [
+"🎅 : 귀찮은 산타가 주머니에서 꺼낸 주먹이 마치 크리스마스 선물처럼 의외의 힘을 담아 당신의 얼굴을 가격합니다! 그 충격은 예상치 못한 축복과 같습니다.",  
+"🎅 : 그의 주먹이 당신의 복부를 강타하며, 마치 크리스마스의 잔치에서의 기분 좋은 서프라이즈처럼 느껴집니다. 당신은 당황할 수밖에 없습니다.",  
+"🎅 : 귀찮은 산타가 날린 주먹은 마치 고백의 순간처럼 섬세하게 당신의 가슴을 가격합니다! 그 힘에 당신은 한순간 멍해집니다.",  
+"🎅 : 그의 공격이 당신을 향해 날아오며, 마치 매서운 겨울 바람처럼 거세고도 강력합니다. 당신은 방어할 수 없습니다!",  
+"🎅 : 귀찮은 산타의 주먹이 당신의 턱을 가격하며, 마치 연말의 축제처럼 갑작스럽게 다가옵니다. 그 일격은 피할 수 없습니다.",  
+"🎅 : 그의 주먹이 당신의 복부를 가격하며, 마치 크리스마스의 선물처럼 잊지 못할 아픔을 안겨줍니다. 당신은 그 힘에 숨이 막힙니다.",  
+"🎅 : 귀찮은 산타가 날린 주먹은 예상치 못한 방향에서 당신을 향해 날아오며, 그 강렬함은 잊을 수 없는 기억으로 남습니다.",  
+"🎅 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 축제의 불꽃처럼 찬란한 순간을 만들어냅니다! 그 충격이 여운을 남깁니다.",  
+"🎅 : 귀찮은 산타의 주먹은 마치 크리스마스 트리의 불빛처럼 눈부시며, 당신의 턱을 가격합니다. 그 아픔은 깊이 남습니다.",  
+"🎅 : 그의 공격이 당신의 몸을 강타하며, 마치 뜻밖의 기쁨을 안겨주는 크리스마스의 순간과도 같습니다!",  
+"🎅 : 귀찮은 산타가 날린 주먹은 마치 축제의 클라이맥스처럼 강렬하게 당신의 가슴을 가격합니다! 그 힘은 예상치 못한 충격입니다.",  
+"🎅 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 연말의 기적처럼 기분 좋은 충격이 당신을 휩쓸어갑니다.",  
+"🎅 : 귀찮은 산타의 공격은 마치 겨울의 설레임처럼 불쑥 다가와, 당신의 방어를 뚫고 들어옵니다! 그 순간은 잊을 수 없습니다.",  
+"🎅 : 그의 주먹이 당신의 복부를 강타하며, 마치 크리스마스의 소망을 이룬 듯한 강렬함을 느끼게 합니다.",  
+"🎅 : 귀찮은 산타가 내리친 주먹은 마치 정직한 기부처럼 예상치 못한 선물 같은 아픔을 가져옵니다!",  
+"🎅 : 그의 주먹이 당신의 턱을 가격하며, 마치 잊혀진 추억을 되살리는 듯한 충격을 안겨줍니다. 그 힘은 강력합니다.",  
+"🎅 : 귀찮은 산타의 공격이 당신의 몸을 타격하며, 마치 겨울의 정취가 느껴지는 순간처럼 기분 좋고도 강렬합니다.",  
+"🎅 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 신비로운 크리스마스의 마법이 깃든 순간처럼 아프고도 매력적입니다!",  
+"🎅 : 귀찮은 산타가 강하게 내리친 주먹은 마치 겨울의 광기처럼 다가와, 당신의 방어를 무너뜨립니다.",  
+"🎅 : 그의 주먹이 예상치 못한 곳에서 당신을 강타하며, 마치 절망의 겨울 속에서의 희망의 빛처럼 강력합니다."   
+            ],
+            "스테로이드 역도선수": [
+"🏋️ : 스테로이드 역도선수의 주먹이 날아오며, 마치 철강처럼 단단한 힘이 느껴지는 순간! 그 충격은 아찔한 고통으로 이어집니다.",  
+"🏋️ : 그의 주먹이 당신의 복부를 강타하며, 마치 강력한 힘의 상징이 되돌아오는 듯한 아픔을 남깁니다.",  
+"🏋️ : 스테로이드 역도선수의 날카로운 공격이 당신의 가슴을 가격하며, 그 순간은 마치 피지컬의 최정상에서의 고뇌를 드러내는 듯합니다.",  
+"🏋️ : 그의 주먹이 당신의 얼굴을 가격하는 순간, 마치 무거운 중량이 직접 당신을 눌러오는 듯한 고통이 밀려옵니다!",  
+"🏋️ : 스테로이드 역도선수의 공격이 당신의 턱을 가격하며, 마치 힘의 경계가 무너지는 순간처럼 강렬함을 느끼게 합니다.",  
+"🏋️ : 그의 주먹이 당신의 가슴을 강타하며, 마치 강한 자아가 깨어나는 듯한 깊은 아픔을 안겨줍니다!",  
+"🏋️ : 스테로이드 역도선수가 날린 주먹은 마치 철갑처럼 단단하게 당신을 향해 날아옵니다. 그 힘에 당신은 움츠러듭니다.",  
+"🏋️ : 그의 공격이 당신을 향해 날아오며, 마치 피할 수 없는 힘의 압박감이 느껴집니다!",  
+"🏋️ : 스테로이드 역도선수의 주먹이 당신의 복부를 가격하며, 마치 육체의 한계를 초월하는 듯한 충격을 줍니다.",  
+"🏋️ : 그의 주먹이 당신의 얼굴을 가격하며, 마치 무거운 철근이 내리꽂히는 듯한 깊은 아픔이 밀려옵니다.",  
+"🏋️ : 스테로이드 역도선수의 날카로운 공격이 당신의 가슴을 가격하며, 마치 힘과 고통이 뒤섞인 괴로운 순간이 느껴집니다.",  
+"🏋️ : 그의 주먹이 당신의 턱을 가격하며, 마치 강력한 힘이 단번에 당신을 눕혀버리는 듯한 충격이 느껴집니다!",  
+"🏋️ : 스테로이드 역도선수의 주먹이 날아와 당신의 복부를 강타하는 순간, 그 힘은 마치 압도적인 존재감으로 다가옵니다.",  
+"🏋️ : 그의 공격이 당신의 가슴을 강타하며, 마치 육체적 한계를 초월하려는 절박함이 드러나는 듯합니다.",  
+"🏋️ : 스테로이드 역도선수의 주먹이 당신의 얼굴을 가격하며, 마치 이겨내야 할 운명의 판결처럼 아픔이 스며듭니다!",  
+"🏋️ : 그의 주먹이 당신의 턱을 가격하며, 그 충격은 마치 승리의 환희와 고통이 뒤섞인 듯한 아픔으로 남습니다.",  
+"🏋️ : 스테로이드 역도선수가 날린 주먹은 마치 모든 것을 정복하겠다는 결연한 의지를 담고 당신을 향해 날아옵니다.",  
+"🏋️ : 그의 공격이 당신을 강타하며, 마치 자신의 힘을 시험하는 듯한 깊은 압박감이 느껴집니다.",  
+"🏋️ : 스테로이드 역도선수의 주먹이 당신의 복부를 가격하며, 그 순간은 마치 피할 수 없는 숙명의 고통이 밀려옵니다.",  
+"🏋️ : 그의 주먹이 당신의 얼굴을 가격하며, 마치 힘의 궁극적 결투가 펼쳐지는 듯한 아픔이 스쳐 지나갑니다."  
+            ],
+            "악마의 요리사": [
+"🧑‍🍳 : 악마의 요리사가 내리친 주먹은 마치 잔혹한 요리의 비법처럼 날카롭게 당신을 가격합니다! 그 충격은 참혹한 맛의 시작을 알립니다.",  
+"🧑‍🍳 : 그의 주먹이 당신의 복부를 강타하며, 마치 불길한 조리의 순간처럼 치명적인 아픔을 남깁니다.",  
+"🧑‍🍳 : 악마의 요리사의 날카로운 공격이 당신의 가슴을 가격하며, 그 순간은 마치 고통의 레시피처럼 잊을 수 없는 기억입니다.",  
+"🧑‍🍳 : 그의 주먹이 날아와 당신의 얼굴을 가격하는 순간, 마치 요리의 숨겨진 재료가 드러나는 듯한 기분입니다!",  
+"🧑‍🍳 : 악마의 요리사가 날린 주먹은 마치 절망적인 메뉴처럼 거세게 당신을 향해 날아옵니다. 그 힘에 당신은 움츠러듭니다.",  
+"🧑‍🍳 : 그의 주먹이 당신의 턱을 가격하며, 마치 맛없는 요리가 입에 남는 듯한 쓰라림을 느끼게 합니다!",  
+"🧑‍🍳 : 악마의 요리사의 공격이 당신의 복부를 가격하며, 마치 불행한 요리의 결과가 남겨지는 듯한 강렬함을 안겨줍니다.",  
+"🧑‍🍳 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 음산한 맛의 향연이 펼쳐지는 순간처럼 아프고 쓸쓸합니다!",  
+"🧑‍🍳 : 악마의 요리사의 날카로운 공격이 당신을 향해 날아오며, 그 아픔은 마치 맛의 불행을 떠올리게 합니다.",  
+"🧑‍🍳 : 그의 주먹이 당신의 가슴을 가격하며, 마치 맛없는 요리를 제대로 음미하는 듯한 깊은 충격을 남깁니다!",  
+"🧑‍🍳 : 악마의 요리사가 날린 주먹은 마치 절망의 재료처럼 잔혹하게 당신을 강타합니다. 그 순간은 고통으로 가득 차 있습니다.",  
+"🧑‍🍳 : 그의 공격이 당신을 강타하며, 마치 끔찍한 요리의 재료가 되는 듯한 무서운 느낌이 듭니다!",  
+"🧑‍🍳 : 악마의 요리사의 주먹이 당신의 턱을 가격하며, 그 충격은 마치 입안에서 펼쳐지는 불행한 맛과 같습니다.",  
+"🧑‍🍳 : 그의 주먹이 날아오며, 마치 고통의 조리법을 기억하게 하는 듯한 강렬함을 동반합니다. 당신은 더욱 고통스러워집니다.",  
+"🧑‍🍳 : 악마의 요리사가 내리친 주먹은 마치 끔찍한 요리의 일격처럼 당신을 압도합니다!",  
+"🧑‍🍳 : 그의 주먹이 당신의 복부를 강타하며, 마치 끔찍한 재료들이 엉켜 있는 듯한 아픔을 느끼게 합니다.",  
+"🧑‍🍳 : 악마의 요리사의 날카로운 공격이 당신의 가슴을 가격하며, 마치 저주받은 요리의 후유증처럼 뼈저리게 다가옵니다.",  
+"🧑‍🍳 : 그의 공격이 당신의 얼굴을 가격하며, 마치 맛없는 요리로 물든 순간처럼 불행한 기억으로 남습니다.",  
+"🧑‍🍳 : 악마의 요리사가 내리친 주먹은 마치 모든 재료가 불행을 담고 있는 듯한 강렬한 충격을 남깁니다.",  
+"🧑‍🍳 : 그의 주먹이 당신의 몸을 강타하며, 마치 비극적인 요리의 마지막 순간처럼 깊은 고통을 남깁니다."   
+            ],
+            "전과자 경찰대 학생": [
+"🧑‍✈️ : 전과자 경찰대 학생의 주먹이 날아오며, 마치 정의의 사도처럼 강렬하게 당신을 향해 다가옵니다! 그 충격은 과거의 고통을 상기시킵니다.",  
+"🧑‍✈️ : 그의 주먹이 당신의 복부를 강타하며, 마치 잊고 싶었던 기억들이 되살아나는 듯한 쓴맛이 느껴집니다.",  
+"🧑‍✈️ : 전과자 경찰대 학생의 날카로운 공격이 당신의 가슴을 가격하며, 그 순간은 마치 복수의 아이콘이 되려는 결연한 의지가 담겨 있습니다.",  
+"🧑‍✈️ : 그의 주먹이 당신의 얼굴을 가격하는 순간, 마치 불완전한 정의를 향한 투쟁의 일환처럼 아픔이 쌓여갑니다!",  
+"🧑‍✈️ : 전과자 경찰대 학생의 공격이 당신의 턱을 가격하며, 마치 과거의 그림자를 떨쳐내려는 절박함이 드러납니다.",  
+"🧑‍✈️ : 그의 주먹이 당신의 가슴을 강타하며, 마치 각인된 죄의 무게를 이겨내려는 고뇌가 느껴지는 듯합니다!",  
+"🧑‍✈️ : 전과자 경찰대 학생이 날린 주먹은 마치 사회의 불의에 맞서는 강한 의지처럼 날카롭게 당신을 강타합니다.",  
+"🧑‍✈️ : 그의 공격이 당신을 향해 날아오며, 마치 잃어버린 신뢰를 되찾으려는 듯한 애절함이 담겨 있습니다.",  
+"🧑‍✈️ : 전과자 경찰대 학생의 주먹이 당신의 복부를 가격하며, 마치 공정한 세상을 위해 싸우는 전사로서의 고통이 느껴집니다!",  
+"🧑‍✈️ : 그의 주먹이 당신의 얼굴을 가격하며, 마치 과거의 상처가 되살아나는 듯한 아픔으로 깊게 박힙니다.",  
+"🧑‍✈️ : 전과자 경찰대 학생의 날카로운 공격이 당신의 가슴을 강타하며, 마치 복수의 날이 올 것을 암시하는 듯한 충격이 일어납니다.",  
+"🧑‍✈️ : 그의 주먹이 날아와 당신을 가격하는 순간, 마치 정의의 편에 서고 싶은 열망이 고스란히 느껴집니다!",  
+"🧑‍✈️ : 전과자 경찰대 학생의 공격이 당신의 턱을 가격하며, 그 순간은 마치 끝나지 않은 이야기의 한 페이지처럼 아프게 다가옵니다.",  
+"🧑‍✈️ : 그의 주먹이 당신의 가슴을 가격하며, 마치 자신의 과거를 극복하려는 결연한 마음이 드러나는 순간입니다.",  
+"🧑‍✈️ : 전과자 경찰대 학생이 내리친 주먹은 마치 잃어버린 가능성을 되찾으려는 듯한 간절함을 안고 있습니다!",  
+"🧑‍✈️ : 그의 공격이 당신을 강타하며, 마치 정의의 이름 아래 누군가의 억울함을 풀어주고 싶은 마음이 느껴집니다.",  
+"🧑‍✈️ : 전과자 경찰대 학생의 주먹이 당신의 복부를 강타하며, 마치 숨겨진 진실이 드러나는 듯한 강렬한 아픔을 안겨줍니다.",  
+"🧑‍✈️ : 그의 주먹이 당신의 얼굴을 가격하며, 그 충격은 마치 평화롭지 못한 세상 속에서의 고뇌를 드러냅니다!",  
+"🧑‍✈️ : 전과자 경찰대 학생의 날카로운 공격이 당신의 가슴을 가격하며, 마치 과거의 그림자와 싸우는 듯한 기분이 듭니다.",  
+"🧑‍✈️ : 그의 공격이 당신을 강타하며, 마치 정의를 위해 싸우는 전사로서의 강렬한 결의가 느껴집니다."  
+            ],
+            "체벌하는 선생님": [
+"🧑‍🏫 : 체벌하는 선생님이 내리친 주먹은 마치 징계의 날카로운 지팡이처럼 당신의 턱을 가격합니다! 그 충격은 단호하고도 냉혹합니다.",  
+"🧑‍🏫 : 그의 주먹이 당신의 복부를 강타하며, 마치 학생의 잘못된 행동을 처벌하는 듯한 무게감을 안겨줍니다.",  
+"🧑‍🏫 : 체벌하는 선생님의 날카로운 공격이 당신의 가슴을 가격하며, 그 순간은 마치 학문의 엄격함을 상징하는 듯합니다.",  
+"🧑‍🏫 : 그의 주먹이 날아와 당신의 얼굴을 가격하는 순간, 마치 수업 시간의 긴장이 감도는 듯한 기분이 듭니다!",  
+"🧑‍🏫 : 체벌하는 선생님이 날린 주먹은 마치 교실의 엄중한 분위기처럼 강력하게 당신을 향해 날아옵니다. 그 힘에 당신은 움츠러듭니다.",  
+"🧑‍🏫 : 그의 주먹이 당신의 턱을 가격하며, 마치 학문의 길을 걷는 자에게 주어지는 냉정한 경고처럼 느껴집니다!",  
+"🧑‍🏫 : 체벌하는 선생님의 공격이 당신의 복부를 가격하며, 마치 학생의 잘못을 바로잡는 듯한 강렬함을 안겨줍니다.",  
+"🧑‍🏫 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 교실의 규칙을 어긴 자에게 내려지는 정의의 일격 같습니다!",  
+"🧑‍🏫 : 체벌하는 선생님의 날카로운 주먹이 당신을 향해 날아오며, 그 아픔은 마치 잊혀진 규율을 상기시킵니다.",  
+"🧑‍🏫 : 그의 주먹이 당신의 가슴을 가격하며, 마치 교실의 강한 규율을 느끼게 하는 순간처럼 깊은 충격을 남깁니다!",  
+"🧑‍🏫 : 체벌하는 선생님이 날린 주먹은 마치 어두운 교실에서의 단호한 명령처럼 잔혹하게 당신을 강타합니다.",  
+"🧑‍🏫 : 그의 공격이 당신을 강타하며, 마치 잘못된 선택의 결과로 남겨진 상처처럼 깊고도 아프게 다가옵니다.",  
+"🧑‍🏫 : 체벌하는 선생님의 주먹이 당신의 턱을 가격하며, 그 충격은 마치 올바른 길로 인도하는 듯한 무게감을 가집니다!",  
+"🧑‍🏫 : 그의 주먹이 날아오며, 마치 학문의 정수를 깨닫는 순간처럼 당신의 가슴을 가격합니다. 그 아픔은 깊고 잊을 수 없습니다.",  
+"🧑‍🏫 : 체벌하는 선생님의 주먹이 당신의 복부를 가격하며, 마치 의무의 무게가 느껴지는 듯한 강렬함을 안겨줍니다.",  
+"🧑‍🏫 : 그의 공격이 당신을 강타하며, 마치 규율과 질서의 상징처럼 잔혹하게 다가옵니다. 당신은 방어할 힘이 없습니다!",  
+"🧑‍🏫 : 체벌하는 선생님의 날카로운 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 교육의 본질을 마주하는 듯합니다.",  
+"🧑‍🏫 : 그의 주먹이 당신의 가슴을 강타하며, 마치 잘못된 길에서 벗어나기 위한 경고처럼 아프게 남습니다.",  
+"🧑‍🏫 : 체벌하는 선생님이 내리친 주먹은 마치 학문에 대한 무거운 책임감을 느끼게 합니다! 당신은 그 힘에 압도됩니다.",  
+"🧑‍🏫 : 그의 공격이 당신의 몸을 타격하며, 마치 교육의 엄격함이 느껴지는 순간처럼 강렬하게 남습니다!" 
+            ],
+            "색맹 화가": [
+"🧑‍🎨 : 색맹 화가의 주먹이 날아오며, 마치 잃어버린 색채의 기억이 고통스럽게 되살아나는 듯합니다! 그 충격은 참혹하면서도 강렬합니다.",  
+"🧑‍🎨 : 그의 주먹이 당신의 복부를 강타하며, 마치 색깔을 잃은 그림처럼 깊고도 쓸쓸한 아픔을 안겨줍니다.",  
+"🧑‍🎨 : 색맹 화가의 날카로운 공격이 당신의 가슴을 가격하며, 그 순간은 마치 미처 표현하지 못한 감정의 재료처럼 다가옵니다.",  
+"🧑‍🎨 : 그의 주먹이 날아와 당신의 얼굴을 가격하는 순간, 마치 그리움을 담은 색깔들이 스쳐 지나가는 듯한 기분입니다!",  
+"🧑‍🎨 : 색맹 화가의 공격이 당신의 턱을 가격하며, 마치 색이 빠진 캔버스 위에서 대혼란이 일어나는 듯한 강렬함을 느낍니다.",  
+"🧑‍🎨 : 그의 주먹이 당신의 가슴을 강타하며, 마치 잃어버린 예술의 정수를 되찾으려는 듯한 절박한 충격이 남습니다.",  
+"🧑‍🎨 : 색맹 화가가 날린 주먹은 마치 혼란스러운 색의 조합처럼 강렬하게 당신을 향해 날아옵니다. 그 힘에 당신은 움츠러듭니다.",  
+"🧑‍🎨 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 정체성을 잃은 예술가의 고통이 그대로 드러나는 듯합니다!",  
+"🧑‍🎨 : 색맹 화가의 날카로운 공격이 당신을 향해 날아오며, 그 아픔은 마치 감정의 색채가 사라진듯한 느낌을 줍니다.",  
+"🧑‍🎨 : 그의 주먹이 당신의 가슴을 가격하며, 마치 회화의 미학이 잃어버린 순간처럼 깊은 충격을 남깁니다!",  
+"🧑‍🎨 : 색맹 화가가 내리친 주먹은 마치 무채색의 비극처럼 잔혹하게 당신을 강타합니다. 그 순간은 고통으로 가득 차 있습니다.",  
+"🧑‍🎨 : 그의 공격이 당신을 강타하며, 마치 혼란스러운 색의 속삭임이 느껴지는 듯한 두려움을 안겨줍니다.",  
+"🧑‍🎨 : 색맹 화가의 주먹이 당신의 턱을 가격하며, 그 충격은 마치 잃어버린 상상력의 대가처럼 아프게 남습니다.",  
+"🧑‍🎨 : 그의 주먹이 날아와 당신의 얼굴을 가격하며, 마치 꿈꾸는 색들이 터져 나오는 듯한 불행한 순간입니다!",  
+"🧑‍🎨 : 색맹 화가의 공격이 당신의 복부를 가격하며, 마치 대담한 시도가 실패한 듯한 강렬함을 남깁니다.",  
+"🧑‍🎨 : 그의 주먹이 당신의 가슴을 강타하며, 마치 화폭 위에서 벌어지는 재앙의 그림처럼 섬뜩하게 다가옵니다.",  
+"🧑‍🎨 : 색맹 화가가 내리친 주먹은 마치 무채색의 정원처럼 깊은 슬픔을 담고 있는 듯한 공격입니다!",  
+"🧑‍🎨 : 그의 공격이 당신을 강타하며, 마치 현실에서 사라진 감정의 색깔이 느껴지는 순간처럼 고통스럽습니다.",  
+"🧑‍🎨 : 색맹 화가의 주먹이 당신의 얼굴을 가격하며, 그 충격은 마치 미지의 색으로 칠해진 운명처럼 깊은 상처를 남깁니다.",  
+"🧑‍🎨 : 그의 공격이 당신을 강타하며, 마치 예술가의 고뇌가 이 세상에 던져진 듯한 강렬한 느낌을 안겨줍니다."  
+            ],
+            "저승의 농부": [
+"🧑‍🌾 : 저승의 농부가 당신의 얼굴을 가격하며, 마치 저승의 기운이 느껴지는 듯한 아찔한 충격이 밀려옵니다!",  
+"🧑‍🌾 : 그의 주먹이 당신의 턱을 가격하는 순간, 마치 저승의 밭에서 수확한 고통이 스쳐 지나갑니다.",  
+"🧑‍🌾 : 저승의 농부의 공격이 당신의 가슴을 강타하며, 삶과 죽음의 경계가 무너지는 듯한 깊은 감정이 느껴집니다.",  
+"🧑‍🌾 : 그의 주먹이 당신의 복부를 가격하며, 인생의 고통이 농사의 수확처럼 쌓이는 듯한 아픔이 밀려옵니다!",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 얼굴을 가격하며, 그 순간은 생명의 신비를 깨닫는 듯한 긴장감이 흐릅니다.",  
+"🧑‍🌾 : 그의 공격이 당신의 턱을 가격하며, 삶과 죽음을 가르는 농사의 끝자락에서의 심리적 압박이 느껴집니다.",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 가슴을 강타하며, 삶의 쌀이 썩어가는 듯한 비극적 감정이 담겨 있습니다!",  
+"🧑‍🌾 : 그의 주먹이 당신의 복부를 강타하는 순간, 어둠 속에서의 농사가 이어지는 듯한 고통이 느껴집니다.",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 얼굴을 가격하며, 그 순간은 저승의 이야기가 시작되는 듯한 긴장감을 불러일으킵니다.",  
+"🧑‍🌾 : 그의 공격이 당신의 턱을 가격하며, 고통의 씨앗이 뿌리를 내리는 듯한 소름이 돋습니다!",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 가슴을 가격하며, 농사의 결실이 고통으로 이어지는 듯한 아픔이 밀려옵니다.",  
+"🧑‍🌾 : 그의 주먹이 당신의 복부를 강타하며, 삶의 끝자락에서 생겨나는 고통의 잔재가 느껴집니다.",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 얼굴을 가격하는 순간, 마치 저승의 냄새가 코를 찌릅니다!",  
+"🧑‍🌾 : 그의 공격이 당신의 턱을 가격하며, 그 힘은 마치 삶의 경계를 넘어서는 듯한 강렬함을 남깁니다.",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 가슴을 가격하며, 모든 생명의 끝자락에서 피어나는 고통이 느껴집니다.",  
+"🧑‍🌾 : 그의 주먹이 당신의 복부를 강타하며, 마치 농사의 잔인함이 얼굴에 남는 듯한 느낌이 듭니다!",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 얼굴을 가격하며, 그 순간은 저승의 비밀을 드러내는 듯한 긴장감이 감돕니다.",  
+"🧑‍🌾 : 그의 공격이 당신의 턱을 가격하고, 마치 한순간의 정적 속에서 모든 것이 멈추는 듯합니다.",  
+"🧑‍🌾 : 저승의 농부의 주먹이 당신의 가슴을 강타하며, 모든 수확의 끝에 놓인 고통이 느껴집니다!",  
+"🧑‍🌾 : 그의 주먹이 당신의 복부를 강타하며, 저승의 땅에서 자란 아픔의 결실이 당신을 압도합니다."  
+            ],
+            "가면쓴 지명수배범": [
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 얼굴을 가격하며, 마치 숨겨진 진실이 폭발하는 듯한 강렬함이 느껴집니다!",  
+"🦹 : 그의 주먹이 당신의 턱을 강타할 때, 그 순간은 마치 복잡한 음모 속으로 빨려드는 듯한 긴장감이 흐릅니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 복부를 강타하며, 그 힘은 마치 감춰진 진실이 드러나는 듯합니다.",  
+"🦹 : 그의 공격이 당신의 얼굴을 가격할 때, 마치 불가사의한 사건이 발생하는 듯한 아찔한 기분이 드는 순간입니다!",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 가슴을 강타하며, 모든 고통이 복잡하게 얽히는 듯한 느낌이 듭니다.",  
+"🦹 : 그의 주먹이 당신의 복부를 가격하며, 마치 숨겨진 음모가 폭발하는 듯한 강렬한 아픔이 느껴집니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 비밀이 드러나는 듯한 긴장감이 감돕니다!",  
+"🦹 : 그의 공격이 당신의 턱을 가격할 때, 마치 모든 것이 얽히는 듯한 아찔한 감정이 밀려옵니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 가슴을 강타하며, 마치 숨겨진 진실이 드러나는 듯한 깊은 고통이 느껴집니다.",  
+"🦹 : 그의 주먹이 당신의 복부를 가격하며, 마치 비밀이 폭발하는 듯한 아픔이 느껴집니다!",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 음모가 밝혀지는 듯한 긴장감이 스멀스멀 다가옵니다.",  
+"🦹 : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 한데 얽히는 듯한 강렬함이 느껴집니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 가슴을 강타하며, 마치 복잡한 사건이 폭발하는 듯한 아픔이 밀려옵니다!",  
+"🦹 : 그의 공격이 당신의 복부를 강타할 때, 마치 숨겨진 진실이 드러나는 듯한 깊은 고통이 느껴집니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 음모가 폭발하는 듯한 긴장감이 감돕니다!",  
+"🦹 : 그의 주먹이 당신의 턱을 가격할 때, 마치 모든 것이 한꺼번에 드러나는 듯한 아찔한 느낌이 듭니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 가슴을 강타하며, 모든 고통이 음모 속으로 얽히는 듯한 아픔이 느껴집니다!",  
+"🦹 : 그의 공격이 당신의 복부를 가격하며, 마치 비밀이 폭발하는 듯한 격렬함이 밀려옵니다.",  
+"🦹 : 가면쓴 지명수배범의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 숨겨진 진실이 드러나는 듯한 강렬함이 느껴집니다!",  
+"🦹 : 그의 주먹이 당신의 턱을 가격할 때, 마치 모든 것이 격렬하게 얽히는 듯한 아픔이 밀려옵니다."  
+            ],
+            "방화범 소방관": [
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 얼굴을 강타하며, 마치 불꽃이 타오르는 듯한 격렬한 충격이 느껴집니다!",  
+"🧑‍🚒 : 그의 주먹이 당신의 턱을 가격할 때, 그 순간은 마치 화염 속에서의 결단처럼 강렬합니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 복부를 강타하며, 그 힘은 마치 불길이 휘몰아치는 듯한 강한 열기입니다.",  
+"🧑‍🚒 : 그의 공격이 당신의 얼굴을 가격할 때, 마치 화재 현장에서의 긴장감이 숨 막히듯 밀려옵니다!",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 가슴을 가격하며, 그 충격은 마치 긴급 구조의 순간을 떠올리게 합니다.",  
+"🧑‍🚒 : 그의 주먹이 당신의 복부를 강타하며, 마치 고통이 불길처럼 퍼져나가는 듯한 느낌이 드는 순간입니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 화염 속의 전투처럼 치열합니다!",  
+"🧑‍🚒 : 그의 공격이 당신의 턱을 가격할 때, 모든 감정이 폭발하는 듯한 열정이 느껴집니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 가슴을 강타하며, 마치 불길이 솟구치는 듯한 격렬한 아픔이 느껴집니다.",  
+"🧑‍🚒 : 그의 주먹이 당신의 복부를 가격하며, 모든 고통이 뜨거운 불꽃처럼 휘몰아치는 순간입니다!",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 불과의 싸움 속으로 뛰어드는 듯합니다.",  
+"🧑‍🚒 : 그의 주먹이 당신의 턱을 가격할 때, 마치 무수한 불꽃이 튀어오르는 듯한 강렬한 감정이 밀려옵니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 가슴을 강타하며, 모든 고통이 화염 속에서 맴도는 듯한 느낌이 듭니다!",  
+"🧑‍🚒 : 그의 공격이 당신의 복부를 가격할 때, 마치 뜨거운 불꽃이 안으로 퍼져나가는 듯한 아픔이 느껴집니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 구조의 순간처럼 숨 막히게 긴장됩니다!",  
+"🧑‍🚒 : 그의 주먹이 당신의 턱을 가격하며, 모든 감정이 불꽃처럼 타오르는 듯한 아픔이 느껴집니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 가슴을 강타하며, 마치 폭발하는 화염 속에서의 투쟁처럼 격렬합니다!",  
+"🧑‍🚒 : 그의 공격이 당신의 복부를 가격할 때, 마치 뜨거운 고통이 불꽃처럼 치솟는 느낌이 듭니다.",  
+"🧑‍🚒 : 방화범 소방관의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 불과의 대결처럼 치열합니다!",  
+"🧑‍🚒 : 그의 주먹이 당신의 턱을 가격하며, 모든 감정이 화염 속에서 얽히는 듯한 강렬한 아픔이 느껴집니다."  
+            ],
+            "멍청한 석사": [
+"🧑‍🎓 : 멍청한 석사가 당신의 얼굴에 주먹을 날리며, 마치 머리가 텅 빈 듯한 기묘한 충격이 느껴집니다!",  
+"🧑‍🎓 : 그의 공격이 당신의 턱을 가격하며, 그 힘은 마치 복잡한 이론을 간단히 정리하는 듯한 감각을 남깁니다.",  
+"🧑‍🎓 : 멍청한 석사의 주먹이 당신의 가슴을 가격하는 순간, 마치 모든 지식이 한 순간에 사라지는 듯한 혼란이 밀려옵니다.",  
+"🧑‍🎓 : 그의 주먹이 당신의 복부를 강타하며, 마치 불확실한 미래가 눈앞에 펼쳐지는 듯한 두려움이 스칩니다.",  
+"🧑‍🎓 : 멍청한 석사가 날린 주먹은 마치 무언가를 잊어버린 듯한 어리둥절함과 함께 당신을 가격합니다!",  
+"🧑‍🎓 : 그의 공격이 당신의 얼굴을 강타하며, 마치 단순함 속에서의 복잡한 감정이 드러나는 듯합니다.",  
+"🧑‍🎓 : 멍청한 석사의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 지식과 무지가 경합하는 듯한 긴장감이 느껴집니다.",  
+"🧑‍🎓 : 그의 공격이 당신의 가슴을 가격하며, 마치 모든 것을 정복하고자 하는 결연한 의지가 담겨 있습니다!",  
+"🧑‍🎓 : 멍청한 석사의 주먹이 당신의 복부를 강타하며, 그 충격은 마치 생각이 정리되지 않는 순간처럼 깊습니다.",  
+"🧑‍🎓 : 그의 주먹이 당신의 얼굴을 가격하는 순간, 그 아픔은 마치 단순한 선택이 가진 복잡한 의미를 드러냅니다!",  
+"🧑‍🎓 : 멍청한 석사가 당신의 턱을 가격하며, 마치 모든 지식이 무너지는 듯한 소름이 돋습니다.",  
+"🧑‍🎓 : 그의 공격이 당신의 가슴을 가격하며, 마치 불확실한 상황 속에서의 혼란이 감도는 듯한 순간이 펼쳐집니다.",  
+"🧑‍🎓 : 멍청한 석사의 주먹이 당신의 복부를 강타하며, 마치 모든 것을 잊어버리려는 듯한 깊은 압박감이 느껴집니다!",  
+"🧑‍🎓 : 그의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 뇌리에 떠오르는 복잡한 질문들이 일어나는 듯합니다.",  
+"🧑‍🎓 : 멍청한 석사의 공격이 당신을 강타하며, 마치 지식의 무게가 느껴지는 듯한 깊은 고통을 줍니다.",  
+"🧑‍🎓 : 그의 주먹이 당신의 턱을 가격하는 순간, 마치 모든 답이 사라지는 듯한 경이로움이 밀려옵니다!",  
+"🧑‍🎓 : 멍청한 석사의 주먹이 당신의 얼굴을 가격하며, 그 아픔은 마치 모든 질문이 남는 듯한 고통이 스쳐 지나갑니다.",  
+"🧑‍🎓 : 그의 공격이 당신의 복부를 강타하며, 마치 무언가가 깨지는 듯한 깊은 감정이 느껴집니다!",  
+"🧑‍🎓 : 멍청한 석사의 주먹이 당신의 가슴을 가격하며, 그 순간은 마치 존재의 의미를 탐구하는 듯한 깊은 아픔이 느껴집니다.",  
+"🧑‍🎓 : 그의 주먹이 당신의 얼굴을 가격하며, 마치 모든 지식이 사라지는 듯한 순간이 느껴집니다!"   
+            ],
+            "미치광이 과학자": [
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 얼굴을 가격하며, 마치 실험실의 폭발처럼 경악스러운 충격이 밀려옵니다!",  
+"🧑‍🔬 : 그의 공격이 당신의 턱을 가격하며, 마치 창의력의 폭풍이 불어오는 듯한 아찔한 순간이 다가옵니다.",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 가슴을 강타하며, 그 충격은 마치 금기된 연구의 결과처럼 무겁습니다.",  
+"🧑‍🔬 : 그의 주먹이 당신의 복부를 가격하며, 마치 모든 감정이 화학작용으로 변하는 듯한 강렬한 아픔이 느껴집니다!",  
+"🧑‍🔬 : 미치광이 과학자의 공격이 당신의 얼굴을 가격하며, 그 순간은 모든 상상을 초월하는 긴장감을 불러일으킵니다.",  
+"🧑‍🔬 : 그의 주먹이 당신의 턱을 가격하고, 마치 모든 이론이 붕괴되는 듯한 아찔한 기분이 밀려옵니다.",  
+"🧑‍🔬 : 미치광이 과학자의 공격이 당신의 가슴을 강타하며, 마치 생명체의 실험대에서의 비극이 드러나는 듯합니다.",  
+"🧑‍🔬 : 그의 주먹이 당신의 복부를 강타하는 순간, 마치 인간의 한계를 시험하는 듯한 무게감이 느껴집니다!",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 세상의 모든 비밀이 폭발하는 듯한 긴장감이 흐릅니다.",  
+"🧑‍🔬 : 그의 공격이 당신의 턱을 가격하며, 마치 과학의 진리가 증명되는 듯한 통쾌한 충격이 느껴집니다!",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 가슴을 가격하며, 마치 모든 생명의 비밀이 드러나는 듯한 고통이 느껴집니다.",  
+"🧑‍🔬 : 그의 주먹이 당신의 복부를 강타하며, 모든 이론의 충돌이 느껴지는 듯한 깊은 압박감이 감돌아옵니다.",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 얼굴을 가격하며, 그 순간은 모든 상상이 현실로 드러나는 듯한 경이로움이 있습니다!",  
+"🧑‍🔬 : 그의 공격이 당신의 턱을 가격하며, 마치 한순간의 실험이 모든 것을 변화시키는 듯한 긴장감이 느껴집니다.",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 가슴을 강타하며, 모든 실험이 생명의 본질을 갈망하는 듯한 아픔이 남습니다.",  
+"🧑‍🔬 : 그의 주먹이 당신의 복부를 강타하며, 마치 감정의 화학작용이 터지는 듯한 깊은 고통이 느껴집니다!",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 얼굴을 가격하는 순간, 모든 이론이 허물어지는 듯한 아찔함이 밀려옵니다.",  
+"🧑‍🔬 : 그의 공격이 당신의 턱을 가격하며, 마치 과학의 경계를 넘는 듯한 강렬한 느낌이 스쳐 지나갑니다.",  
+"🧑‍🔬 : 미치광이 과학자의 주먹이 당신의 가슴을 강타하며, 마치 모든 진실이 폭로되는 듯한 소름이 돋습니다!",  
+"🧑‍🔬 : 그의 주먹이 당신의 복부를 가격하며, 모든 실험의 결과가 당신에게 압도적으로 다가오는 순간입니다."
+            ],
+            "죽음의 락스타": [
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 얼굴을 가격하며, 마치 전율이 퍼지는 듯한 강렬한 충격이 느껴집니다!",  
+"🧑‍🎤 : 그의 공격이 당신의 턱을 가격하는 순간, 마치 무대의 조명이 꺼진 듯한 긴장감이 감도는 순간입니다.",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 가슴을 강타하며, 그 힘은 마치 비극적인 노래의 마지막 구절처럼 깊습니다.",  
+"🧑‍🎤 : 그의 주먹이 당신의 복부를 가격하며, 마치 모든 감정이 무대 위에서 고조되는 듯한 아픔이 느껴집니다!",  
+"🧑‍🎤 : 죽음의 락스타의 공격이 당신의 얼굴을 가격하며, 그 순간은 마치 관객의 심장을 쥐어잡는 듯한 강렬함이 밀려옵니다.",  
+"🧑‍🎤 : 그의 주먹이 당신의 턱을 가격하며, 마치 음악의 비트가 당신의 심장을 두드리는 듯한 느낌이 듭니다.",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 가슴을 강타하며, 그 충격은 마치 공연의 클라이맥스를 맞이하는 듯합니다!",  
+"🧑‍🎤 : 그의 공격이 당신의 복부를 강타하며, 마치 모든 노래가 절정에 이르는 듯한 깊은 고통이 느껴집니다.",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 무대의 열기가 폭발하는 듯한 긴장감이 흐릅니다.",  
+"🧑‍🎤 : 그의 주먹이 당신의 턱을 가격하며, 마치 전율이 방안 가득히 퍼지는 듯한 아찔한 느낌이 밀려옵니다!",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 가슴을 강타하며, 모든 감정이 무대 위에서 폭발하는 듯한 느낌이 듭니다.",  
+"🧑‍🎤 : 그의 주먹이 당신의 복부를 강타하며, 마치 비극적인 가사가 마음 깊이 파고드는 듯한 아픔이 느껴집니다!",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 죽음의 멜로디가 흘러나오는 듯한 감정이 솟아오릅니다.",  
+"🧑‍🎤 : 그의 공격이 당신의 턱을 가격하며, 모든 감정이 한순간에 집결되는 듯한 강렬한 충격이 밀려옵니다.",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 가슴을 강타하며, 마치 무대 위의 드라마가 절정에 다다르는 듯한 긴장감이 감도는 순간입니다.",  
+"🧑‍🎤 : 그의 주먹이 당신의 복부를 가격하며, 모든 고통이 음악의 비트처럼 쪼개지는 듯한 아픔이 느껴집니다!",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 얼굴을 가격하며, 그 순간은 무대의 열기가 가득한 듯한 아찔한 감정이 감돕니다.",  
+"🧑‍🎤 : 그의 공격이 당신의 턱을 가격하며, 마치 관객이 숨을 죽이는 듯한 긴장감이 스며듭니다.",  
+"🧑‍🎤 : 죽음의 락스타의 주먹이 당신의 가슴을 강타하며, 모든 감정이 하나로 합쳐지는 듯한 격렬한 아픔이 느껴집니다!",  
+"🧑‍🎤 : 그의 주먹이 당신의 복부를 강타하며, 마치 모든 슬픔이 음악의 화폭에 녹아드는 듯한 깊은 고통이 밀려옵니다!"  
+            ],
+            "난쟁이 엘프": [
+"🧝 : 난쟁이 엘프의 주먹이 당신의 얼굴에 적중하며, 그의 작은 체구 속에 숨겨진 거대한 힘이 폭발하는 순간입니다!",  
+"🧝 : 그의 주먹이 당신의 복부를 강타할 때, 마치 날카로운 엘프의 특성이 드러나는 듯한 아픔이 밀려옵니다.",  
+"🧝 : 난쟁이 엘프가 당신의 턱을 가격하며, 그 순간은 마치 고요한 숲 속의 바람이 거세지는 듯한 긴장감이 감돕니다.",  
+"🧝 : 그의 공격이 당신의 가슴을 가격할 때, 마치 자연의 힘이 발산되는 듯한 압박감이 느껴집니다!",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 복부를 강타하며, 모든 것이 고요함 속에서 뒤엉키는 듯한 긴박감이 느껴집니다.",  
+"🧝 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 숲 속의 생명력이 느껴지는 듯한 압도적인 감정이 밀려옵니다.",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 대자연의 숨결이 느껴지는 듯한 아찔한 경험이 다가옵니다.",  
+"🧝 : 그의 공격이 당신의 가슴을 가격할 때, 모든 것이 비극적으로 얽히는 듯한 강렬한 고통이 밀려옵니다!",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 복부를 강타하며, 마치 숲의 마법이 퍼지는 듯한 감정이 느껴집니다.",  
+"🧝 : 그의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 신비로운 존재가 드러나는 듯한 기묘한 경험이 다가옵니다.",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 턱을 가격할 때, 마치 고요한 숲의 포근함이 느껴지는 듯한 아픔이 밀려옵니다.",  
+"🧝 : 그의 주먹이 당신의 가슴을 강타하며, 마치 엘프의 마법이 강렬하게 발휘되는 듯한 긴장감이 감돕니다!",  
+"🧝 : 난쟁이 엘프의 공격이 당신의 복부를 가격할 때, 숨 막히는 고통이 마치 숲의 힘이 드러나는 듯한 감정이 느껴집니다.",  
+"🧝 : 그의 주먹이 당신의 얼굴에 적중하며, 마치 자연의 저항력이 느껴지는 듯한 아찔한 순간이 펼쳐집니다.",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 모든 것이 숲의 어둠 속으로 빨려드는 듯한 긴장감이 감돕니다.",  
+"🧝 : 그의 공격이 당신의 가슴을 가격할 때, 마치 자연의 힘이 모든 것을 압도하는 듯한 아찔함이 느껴집니다!",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 복부를 강타하며, 모든 감정이 숨겨진 자연의 힘으로 빨려드는 듯한 강렬함이 느껴집니다.",  
+"🧝 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 숲 속의 저항이 강렬하게 느껴지는 듯한 아픔이 밀려옵니다.",  
+"🧝 : 난쟁이 엘프의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 자연의 힘이 드러나는 듯한 긴장감이 감돕니다.",  
+"🧝 : 그의 공격이 당신의 가슴을 강타할 때, 마치 숲의 생명력이 당신을 압도하는 듯한 아찔함이 느껴집니다."  
+            ],
+            "편파적인 판사": [
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 얼굴을 강타하며, 마치 법정의 판결이 강하게 내려지는 듯한 충격이 느껴집니다!",  
+"🧑‍⚖️ : 그의 주먹이 당신의 턱을 가격할 때, 그 순간은 마치 정의의 이름으로 내려지는 선고처럼 엄숙합니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 복부를 강타하며, 그 힘은 마치 법과 정의가 휘몰아치는 듯한 아픔이 느껴집니다.",  
+"🧑‍⚖️ : 그의 공격이 당신의 얼굴을 가격할 때, 마치 법정의 소음이 숨 막히는 듯한 긴장감을 만들어냅니다!",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 가슴을 강타하며, 모든 감정이 한순간에 폭발하는 듯한 강렬함이 느껴집니다.",  
+"🧑‍⚖️ : 그의 주먹이 당신의 복부를 강타하며, 마치 법정의 공기가 긴장으로 가득 차는 듯한 아픔이 밀려옵니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 정의의 사자가 나타나는 듯한 긴장감이 감돕니다!",  
+"🧑‍⚖️ : 그의 공격이 당신의 턱을 가격할 때, 모든 것이 얽히고 설키는 듯한 강렬한 감정이 밀려옵니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 가슴을 강타하며, 마치 법정에서의 긴장이 뚜렷이 느껴지는 듯한 고통이 느껴집니다.",  
+"🧑‍⚖️ : 그의 주먹이 당신의 복부를 가격하며, 마치 정의가 휘두르는 검처럼 강렬한 아픔이 밀려옵니다!",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 법정의 선고가 내려지는 듯한 무거운 공기가 느껴집니다.",  
+"🧑‍⚖️ : 그의 주먹이 당신의 턱을 가격할 때, 마치 모든 감정이 선고의 순간처럼 한꺼번에 쏟아지는 듯한 아픔이 밀려옵니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 가슴을 강타하며, 마치 정의의 이름으로 내리는 심판처럼 강렬합니다!",  
+"🧑‍⚖️ : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 진실이 드러나는 듯한 깊은 고통이 느껴집니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 법정의 공기가 무겁게 가득 차는 듯한 긴장감이 감돕니다!",  
+"🧑‍⚖️ : 그의 주먹이 당신의 턱을 강타하며, 모든 것이 격렬하게 얽히는 듯한 아픔이 느껴집니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 가슴을 강타하며, 마치 정의의 이름으로 내리는 판결처럼 강렬합니다.",  
+"🧑‍⚖️ : 그의 공격이 당신의 복부를 가격할 때, 마치 법정의 판결이 몸속에 스며드는 듯한 느낌이 듭니다.",  
+"🧑‍⚖️ : 편파적인 판사의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 법정에서의 긴장이 최고조에 이르는 듯한 강렬함이 느껴집니다!",  
+"🧑‍⚖️ : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 한꺼번에 터지는 듯한 아픔이 밀려옵니다." 
+            ],
+            "AI를 활용하는 마법사": [
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 얼굴을 가격하며, 마치 데이터의 힘이 집중된 듯한 충격이 느껴집니다!",  
+"🧙‍♂️ : 그의 주먹이 당신의 턱을 강타할 때, 그 순간은 마치 인공지능의 예측이 현실로 다가오는 듯한 긴장감이 감돕니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 복부를 가격하며, 그 힘은 마치 알고리즘의 복잡함이 응축된 듯한 아픔이 느껴집니다.",  
+"🧙‍♂️ : 그의 공격이 당신의 얼굴을 가격할 때, 마치 가상의 세계에서 튀어나온 강렬한 힘처럼 아찔합니다!",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 가슴을 강타하며, 모든 감정이 한순간에 데이터의 폭풍처럼 터지는 듯한 강렬함이 느껴집니다.",  
+"🧙‍♂️ : 그의 주먹이 당신의 복부를 가격하며, 마치 숨겨진 지식이 폭발하는 듯한 아픔이 밀려옵니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 가상의 힘이 현실을 지배하는 듯한 긴장감이 감돕니다!",  
+"🧙‍♂️ : 그의 공격이 당신의 턱을 가격할 때, 모든 것이 알고리즘처럼 얽히고 설키는 듯한 강렬한 감정이 밀려옵니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 가슴을 강타하며, 마치 데이터의 힘이 전해지는 듯한 고통이 느껴집니다.",  
+"🧙‍♂️ : 그의 주먹이 당신의 복부를 가격하며, 마치 숨겨진 지식이 드러나는 듯한 아픔이 밀려옵니다!",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 기술의 혁신이 나타나는 듯한 긴장감이 감돕니다.",  
+"🧙‍♂️ : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 전산적으로 처리되는 듯한 강렬한 아픔이 느껴집니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 가슴을 강타하며, 마치 가상의 힘이 현실을 흔드는 듯한 강렬함이 느껴집니다!",  
+"🧙‍♂️ : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 알고리즘이 드러나는 듯한 깊은 고통이 밀려옵니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 인공지능의 지혜가 폭발하는 듯한 긴장감이 감돕니다!",  
+"🧙‍♂️ : 그의 주먹이 당신의 턱을 강타하며, 모든 것이 가상의 세계와 현실을 넘나드는 듯한 아픔이 느껴집니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 가슴을 강타하며, 마치 데이터의 힘이 현실을 지배하는 듯한 강렬함이 느껴집니다.",  
+"🧙‍♂️ : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 지식이 폭발하는 듯한 아픔이 밀려옵니다.",  
+"🧙‍♂️ : AI를 활용하는 마법사의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 미래가 현재를 향해 다가오는 듯한 긴장감이 감돕니다!",  
+"🧙‍♂️ : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 알고리즘처럼 쏟아지는 듯한 아픔이 밀려옵니다."  
+            ],
+            "은밀한 닌자": [
+"🥷 : 은밀한 닌자의 주먹이 당신의 얼굴을 가격하며, 마치 어둠 속에서 날아오는 날카로운 칼날처럼 빠르고 강렬합니다!",  
+"🥷 : 그의 주먹이 당신의 턱을 강타할 때, 그 순간은 마치 사라진 그림자가 당신을 겨냥한 듯한 긴장감이 감돕니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 복부를 가격하며, 그 힘은 마치 불가사의한 힘이 응축된 듯한 아픔이 느껴집니다.",  
+"🥷 : 그의 공격이 당신의 얼굴을 가격할 때, 마치 조용한 밤에 울려 퍼지는 살얼음 같은 고통이 밀려옵니다!",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 가슴을 강타하며, 모든 감정이 한순간에 터져 나오는 듯한 격렬함이 느껴집니다.",  
+"🥷 : 그의 주먹이 당신의 복부를 강타하며, 마치 숨겨진 위협이 갑작스럽게 드러나는 듯한 아픔이 밀려옵니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 어둠이 몰려오는 듯한 긴장감이 감도는 것입니다!",  
+"🥷 : 그의 공격이 당신의 턱을 가격할 때, 모든 것이 얽히고 설키는 듯한 강렬한 감정이 밀려옵니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 가슴을 강타하며, 마치 조용한 밤에 갑작스레 터지는 폭발처럼 강렬한 고통이 느껴집니다.",  
+"🥷 : 그의 주먹이 당신의 복부를 가격하며, 마치 잠자던 힘이 깨어나는 듯한 아픔이 밀려옵니다!",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 악몽 속의 전투처럼 불길합니다.",  
+"🥷 : 그의 주먹이 당신의 턱을 가격할 때, 마치 어둠 속에서 스며드는 무서운 긴장감이 느껴집니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 가슴을 강타하며, 모든 감정이 조용히 응축된 듯한 격렬함이 느껴집니다!",  
+"🥷 : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 진실이 드러나는 듯한 깊은 고통이 밀려옵니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 고요한 밤에 울려 퍼지는 격렬한 심장박동처럼 긴장됩니다!",  
+"🥷 : 그의 주먹이 당신의 턱을 강타하며, 모든 것이 한순간에 폭발하는 듯한 아픔이 느껴집니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 가슴을 강타하며, 마치 어둠 속에서 터지는 숨겨진 진실처럼 격렬합니다.",  
+"🥷 : 그의 공격이 당신의 복부를 가격하며, 마치 그 어느 날의 고통이 다시 찾아오는 듯한 느낌이 듭니다.",  
+"🥷 : 은밀한 닌자의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 잊혀진 과거가 다시 떠오르는 듯한 긴장감이 감돕니다!",  
+"🥷 : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 한꺼번에 터지는 듯한 아픔이 밀려옵니다."
+            ],
+            "못생긴 요정": [
+"🧚 : 못생긴 요정의 주먹이 당신의 얼굴을 가격하며, 마치 기이한 마법의 힘이 발휘되는 듯한 충격이 느껴집니다.",
+"🧚 : 그의 주먹이 당신의 턱을 강타할 때, 그 순간은 마치 비현실적인 세계의 고통이 드러나는 듯한 긴장감이 감돕니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 복부를 강타하며, 그 힘은 마치 마법의 뒤틀림이 응축된 듯한 아픔이 느껴집니다.",
+"🧚 : 그의 공격이 당신의 얼굴을 가격할 때, 마치 기이한 마법이 현실로 펼쳐지는 듯한 아찔함이 느껴집니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 가슴을 강타하며, 모든 감정이 한순간에 마법처럼 터지는 듯한 강렬함이 느껴집니다.",
+"🧚 : 그의 주먹이 당신의 복부를 강타하며, 마치 기이한 힘이 드러나는 듯한 아픔이 밀려옵니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 마법의 힘이 현실을 뒤흔드는 듯한 긴장감이 감돕니다.",
+"🧚 : 그의 공격이 당신의 턱을 가격할 때, 모든 것이 기묘하게 얽히고 설키는 듯한 강렬한 감정이 밀려옵니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 가슴을 강타하며, 마치 기이한 마법이 세상을 뒤바꾸는 듯한 고통이 느껴집니다.",
+"🧚 : 그의 주먹이 당신의 복부를 가격하며, 마치 마법의 어둠이 드러나는 듯한 아픔이 밀려옵니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 마법이 현실을 압도하는 듯한 긴장감이 감돕니다.",
+"🧚 : 그의 주먹이 당신의 턱을 강타할 때, 모든 감정이 마법처럼 얽히는 듯한 강렬한 아픔이 느껴집니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 가슴을 강타하며, 마치 기이한 힘이 현실을 흔드는 듯한 강렬함이 느껴집니다.",
+"🧚 : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 마법이 드러나는 듯한 깊은 고통이 밀려옵니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 마법의 힘이 강렬하게 발휘되는 듯한 긴장감이 감돕니다.",
+"🧚 : 그의 주먹이 당신의 턱을 강타하며, 모든 것이 비현실적으로 얽히는 듯한 아픔이 느껴집니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 가슴을 강타하며, 마치 기이한 마법의 힘이 전해지는 듯한 강렬함이 느껴집니다.",
+"🧚 : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 마법이 폭발하는 듯한 아픔이 밀려옵니다.",
+"🧚 : 못생긴 요정의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 기이한 힘이 현실을 압도하는 듯한 긴장감이 감돕니다.",
+"🧚 : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 마법처럼 쏟아지는 듯한 아픔이 밀려옵니다."
+            ],
+            "피를 못보는 뱀파이어": [
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 얼굴에 적중하며, 마치 어둠 속에서 불꽃이 튀는 듯한 경악스러운 순간이 연출됩니다.",  
+"🧛 : 그의 주먹이 당신의 복부를 강타할 때, 깊은 어둠 속에 숨겨진 힘이 드러나는 듯한 아찔한 통증이 느껴집니다.",  
+"🧛 : 피를 못보는 뱀파이어가 당신의 턱을 가격하며, 그 순간은 마치 음산한 그림자가 짙게 드리워진 듯한 긴장감이 감돕니다.",  
+"🧛 : 그의 공격이 당신의 가슴을 가격할 때, 마치 차가운 피의 흐름이 멈추는 듯한 고통이 밀려옵니다!",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 복부를 강타하며, 모든 것이 어둠 속에서 뒤엉키는 듯한 긴박감이 느껴집니다.",  
+"🧛 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 숨겨진 공포가 드러나는 듯한 압도적인 감정이 밀려옵니다.",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 악몽이 현실로 다가오는 듯한 아찔한 전율이 느껴집니다.",  
+"🧛 : 그의 공격이 당신의 가슴을 가격할 때, 모든 것이 비극적으로 얽히는 듯한 강렬한 고통이 밀려옵니다!",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 복부를 강타하며, 마치 차가운 공포가 스며드는 듯한 압박감이 느껴집니다.",  
+"🧛 : 그의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 시간의 흐름이 멈춘 듯한 기묘한 경험이 다가옵니다.",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 턱을 가격할 때, 마치 상처가 남을 듯한 아픔이 밀려옵니다.",  
+"🧛 : 그의 주먹이 당신의 가슴을 강타하며, 마치 어둠 속에서 힘이 폭발하는 듯한 긴장감이 감돕니다!",  
+"🧛 : 피를 못보는 뱀파이어의 공격이 당신의 복부를 가격할 때, 숨 막히는 고통이 마치 어둠으로 감싸이는 듯한 감정이 느껴집니다.",  
+"🧛 : 그의 주먹이 당신의 얼굴에 적중하며, 마치 정체불명의 힘이 강렬하게 느껴지는 듯한 아찔한 순간이 펼쳐집니다.",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 모든 것이 불길한 그림자에 잠식되는 듯한 긴장감이 감돕니다.",  
+"🧛 : 그의 공격이 당신의 가슴을 가격할 때, 마치 피의 냄새가 사라지는 듯한 공포가 밀려옵니다!",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 복부를 강타하며, 모든 감정이 숨겨진 어둠으로 빨려드는 듯한 강렬함이 느껴집니다.",  
+"🧛 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 음산한 소리가 귓가에 맴도는 듯한 아픔이 밀려옵니다.",  
+"🧛 : 피를 못보는 뱀파이어의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 끔찍한 현실이 드러나는 듯한 긴장감이 감돕니다.",  
+"🧛 : 그의 공격이 당신의 가슴을 강타할 때, 마치 어둠의 힘이 당신을 압도하는 듯한 아찔함이 느껴집니다."
+            ],
+            "평범한 슈퍼맨": [
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 얼굴을 강타하며, 마치 일상 속에서 숨겨진 영웅의 힘이 폭발하는 순간입니다.",  
+"🦸 : 그의 주먹이 당신의 턱을 가격할 때, 그 순간은 마치 평범함 속의 특별함이 드러나는 듯한 긴장감이 감돕니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 복부를 강타하며, 그 힘은 마치 숨겨진 재능이 드러나는 듯한 아픔이 느껴집니다.",  
+"🦸 : 그의 공격이 당신의 얼굴을 가격할 때, 마치 조용한 날에 일어나는 비범한 사건처럼 아찔합니다!",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 가슴을 강타하며, 모든 감정이 한순간에 폭발하는 듯한 강렬함이 느껴집니다.",  
+"🦸 : 그의 주먹이 당신의 복부를 강타하며, 마치 평범한 일상이 비범한 힘으로 바뀌는 듯한 아픔이 밀려옵니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 숨겨진 능력이 깨어나는 듯한 긴장감이 감돕니다!",  
+"🦸 : 그의 공격이 당신의 턱을 가격할 때, 모든 것이 얽히고 설키는 듯한 강렬한 감정이 밀려옵니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 가슴을 강타하며, 마치 일상에서 영웅적인 선택이 나타나는 듯한 고통이 느껴집니다.",  
+"🦸 : 그의 주먹이 당신의 복부를 가격하며, 마치 숨겨진 재능이 폭발하는 듯한 아픔이 밀려옵니다!",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 일반인 속에 숨어 있는 영웅이 드러나는 듯한 긴장감이 감돕니다.",  
+"🦸 : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 한꺼번에 터지는 듯한 강렬한 아픔이 느껴집니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 가슴을 강타하며, 마치 일상의 고난이 영웅의 힘으로 극복되는 듯한 느낌이 듭니다!",  
+"🦸 : 그의 공격이 당신의 복부를 가격할 때, 마치 조용한 순간에 숨겨진 진실이 드러나는 듯한 깊은 고통이 밀려옵니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 얼굴을 가격하며, 그 순간은 마치 평범한 날에 영웅이 나타나는 듯한 긴장감이 감돕니다!",  
+"🦸 : 그의 주먹이 당신의 턱을 강타하며, 모든 것이 격렬하게 얽히는 듯한 아픔이 느껴집니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 가슴을 강타하며, 마치 일상 속의 작은 기적이 일어나는 듯한 강렬함이 느껴집니다.",  
+"🦸 : 그의 공격이 당신의 복부를 가격할 때, 마치 숨겨진 힘이 드러나는 듯한 아픔이 밀려옵니다.",  
+"🦸 : 평범한 슈퍼맨의 주먹이 당신의 얼굴을 강타하며, 그 순간은 마치 일상의 고난 속에서 영웅이 피어나는 듯한 긴장감이 감돕니다!",  
+"🦸 : 그의 주먹이 당신의 턱을 가격할 때, 모든 감정이 한꺼번에 쏟아지는 듯한 아픔이 밀려옵니다."
+            ],
+            "치매 의사": [
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 잊혀진 기억이 폭발하는 듯한 충격을 안겨줍니다.",  
+"🧑‍⚕️ : 그의 주먹이 당신의 복부를 강타할 때, 마치 무언가가 순간적으로 무너지는 듯한 압도적인 아픔이 느껴집니다.",  
+"🧑‍⚕️ : 치매 의사가 당신의 턱을 가격하며, 그 순간은 마치 과거와 현재가 뒤섞이는 듯한 비극적 긴장감이 감돕니다.",  
+"🧑‍⚕️ : 그의 공격이 당신의 가슴을 가격할 때, 마치 고통이 잊혀진 기억을 되살리는 듯한 섬뜩한 느낌이 밀려옵니다!",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 복부를 강타하며, 모든 것이 혼란 속에서 뒤엉키는 듯한 긴박감이 느껴집니다.",  
+"🧑‍⚕️ : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 정체불명의 공포가 다가오는 듯한 아픔이 밀려옵니다.",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 기억의 조각이 박살나는 듯한 아찔한 전율이 느껴집니다.",  
+"🧑‍⚕️ : 그의 공격이 당신의 가슴을 가격할 때, 모든 것이 어둠 속으로 빨려드는 듯한 강렬한 고통이 밀려옵니다!",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 복부를 강타하며, 마치 잃어버린 시간이 되돌아오는 듯한 압박감이 느껴집니다.",  
+"🧑‍⚕️ : 그의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 무언가가 결코 잊혀지지 않을 것 같은 기묘한 경험이 다가옵니다.",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 턱을 가격할 때, 마치 모든 것이 혼란스럽게 얽히는 듯한 아픔이 밀려옵니다.",  
+"🧑‍⚕️ : 그의 주먹이 당신의 가슴을 강타하며, 마치 기억의 잔재가 폭발하는 듯한 긴장감이 감돕니다!",  
+"🧑‍⚕️ : 치매 의사의 공격이 당신의 복부를 가격할 때, 숨 막히는 고통이 마치 과거의 유령이 드러나는 듯한 감정이 느껴집니다.",  
+"🧑‍⚕️ : 그의 주먹이 당신의 얼굴에 적중하며, 마치 시간이 멈춘 듯한 섬뜩한 경험이 다가옵니다.",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 모든 것이 비극적으로 얽히는 듯한 긴장감이 감돕니다.",  
+"🧑‍⚕️ : 그의 공격이 당신의 가슴을 가격할 때, 마치 과거의 상처가 되살아나는 듯한 아찔함이 느껴집니다!",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 복부를 강타하며, 모든 감정이 잃어버린 기억 속으로 빨려드는 듯한 강렬함이 느껴집니다.",  
+"🧑‍⚕️ : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 잊혀진 공포가 강렬하게 드러나는 듯한 아픔이 밀려옵니다.",  
+"🧑‍⚕️ : 치매 의사의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 모든 것이 무너지는 듯한 긴장감이 감돕니다.",  
+"🧑‍⚕️ : 그의 공격이 당신의 가슴을 강타할 때, 마치 과거의 모든 고통이 압도적으로 밀려오는 듯한 아찔함이 느껴집니다."
+            ],
+            "삼지창 든 인어": [
+"🧜 : 삼지창 든 인어의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 바다의 분노가 폭발하는 듯한 강렬함을 안겨줍니다.",  
+"🧜 : 그의 주먹이 당신의 복부를 강타할 때, 마치 깊은 바다의 물결이 당신을 짓누르는 듯한 아찔한 압박감이 느껴집니다.",  
+"🧜 : 삼지창 든 인어가 당신의 턱을 가격하며, 그 순간은 마치 바다의 속삭임이 다가오는 듯한 긴장감이 감돕니다.",  
+"🧜 : 그의 공격이 당신의 가슴을 가격할 때, 마치 해양의 힘이 당신을 압도하는 듯한 아찔함이 느껴집니다!",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 복부를 강타하며, 모든 것이 바다 속에서 소용돌이치는 듯한 긴박감이 느껴집니다.",  
+"🧜 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 바닷물이 스며드는 듯한 아픔이 밀려옵니다.",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 해양의 힘이 느껴지는 듯한 아찔한 전율이 느껴집니다.",  
+"🧜 : 그의 공격이 당신의 가슴을 가격할 때, 모든 것이 깊은 바다 속으로 빨려드는 듯한 강렬한 고통이 밀려옵니다!",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 복부를 강타하며, 마치 해저의 압력이 당신을 짓누르는 듯한 느낌이 듭니다.",  
+"🧜 : 그의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 바다가 당신을 품에 안는 듯한 강렬한 경험이 다가옵니다.",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 턱을 가격할 때, 마치 바다의 깊은 신비가 깨어나는 듯한 아찔한 전율이 느껴집니다.",  
+"🧜 : 그의 공격이 당신의 가슴을 가격할 때, 마치 해양의 갈증이 당신을 압도하는 듯한 긴장감이 감돕니다!",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 복부를 강타하며, 모든 것이 바다의 힘으로 회오리치는 듯한 아픔이 밀려옵니다.",  
+"🧜 : 그의 주먹이 당신의 얼굴에 적중하며, 마치 물속에서 느끼는 긴장감이 당신을 사로잡습니다.",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 바다의 포효가 느껴지는 듯한 아찔한 순간이 펼쳐집니다.",  
+"🧜 : 그의 공격이 당신의 가슴을 가격할 때, 마치 깊은 바다의 미소가 다가오는 듯한 기묘한 경험이 다가옵니다!",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 복부를 강타하며, 마치 해양의 흐름이 당신을 휘감는 듯한 강렬함이 느껴집니다.",  
+"🧜 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 바다의 노래가 울려 퍼지는 듯한 아픔이 밀려옵니다.",  
+"🧜 : 삼지창 든 인어의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 바다의 기억이 되살아나는 듯한 긴장감이 감돕니다.",  
+"🧜 : 그의 공격이 당신의 가슴을 강타할 때, 마치 바다의 폭풍이 당신을 뒤덮는 듯한 아찔함이 느껴집니다."
+            ],
+            "춤추는 우주인": [
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 우주의 리듬이 폭발하는 듯한 황홀함을 안겨줍니다.",  
+"🧑‍🚀 : 그의 주먹이 당신의 복부를 강타할 때, 마치 무중력 상태에서 돌진하는 듯한 아찔한 압박감이 느껴집니다.",  
+"🧑‍🚀 : 춤추는 우주인이 당신의 턱을 가격하며, 그 순간은 마치 별들이 비명 지르는 듯한 긴장감이 감돕니다.",  
+"🧑‍🚀 : 그의 공격이 당신의 가슴을 가격할 때, 마치 우주의 힘이 당신을 압도하는 듯한 아찔함이 느껴집니다!",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 복부를 강타하며, 모든 것이 우주 속에서 뒤엉키는 듯한 긴박감이 느껴집니다.",  
+"🧑‍🚀 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 우주에서 온 통쾌한 폭발이 다가오는 듯한 아픔이 밀려옵니다.",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 블랙홀의 힘이 느껴지는 듯한 아찔한 전율이 느껴집니다.",  
+"🧑‍🚀 : 그의 공격이 당신의 가슴을 가격할 때, 모든 것이 무중력 속에서 미끄러지는 듯한 강렬한 고통이 밀려옵니다!",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 복부를 강타하며, 마치 우주의 진동이 느껴지는 듯한 압박감이 느껴집니다.",  
+"🧑‍🚀 : 그의 주먹이 당신의 얼굴에 적중하며, 그 순간은 마치 별빛이 흩어지는 듯한 기묘한 경험이 다가옵니다.",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 턱을 가격할 때, 마치 모든 것이 우주 속으로 빨려드는 듯한 아픔이 밀려옵니다.",  
+"🧑‍🚀 : 그의 주먹이 당신의 가슴을 강타하며, 마치 우주의 힘이 당신을 압도하는 듯한 긴장감이 감돕니다!",  
+"🧑‍🚀 : 춤추는 우주인의 공격이 당신의 복부를 가격할 때, 숨 막히는 고통이 마치 우주에서 온 충격이 느껴지는 듯한 감정이 느껴집니다.",  
+"🧑‍🚀 : 그의 주먹이 당신의 얼굴에 적중하며, 마치 우주의 경이로움이 드러나는 듯한 아찔한 순간이 펼쳐집니다.",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 턱을 강타하며, 그 순간은 마치 모든 것이 우주에서 와닿는 듯한 긴장감이 감돕니다.",  
+"🧑‍🚀 : 그의 공격이 당신의 가슴을 가격할 때, 마치 우주의 압력이 당신을 강하게 짓누르는 듯한 아찔함이 느껴집니다!",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 복부를 강타하며, 모든 감정이 우주 속으로 빨려드는 듯한 강렬함이 느껴집니다.",  
+"🧑‍🚀 : 그의 주먹이 당신의 얼굴을 가격할 때, 마치 별들이 당신을 둘러싸는 듯한 아픔이 밀려옵니다.",  
+"🧑‍🚀 : 춤추는 우주인의 주먹이 당신의 턱을 가격하며, 그 순간은 마치 우주의 힘이 느껴지는 듯한 긴장감이 감돕니다.",  
+"🧑‍🚀 : 그의 공격이 당신의 가슴을 강타할 때, 마치 우주의 음악이 당신을 압도하는 듯한 아찔함이 느껴집니다."
+            ],
+            // ... 다른 상대방들의 텍스트
+        };
+
+        const competitionTexts = [
+            "두 선수의 눈빛에서 서로를 꿰뚫으려는 치열한 집중력이 느껴집니다. 긴장의 끈을 놓을 수 없습니다!",  
+"두 선수, 순간의 허점을 찾기 위해 서로를 탐색합니다. 한순간의 실수가 경기를 끝낼 것입니다!",  
+"경기는 팽팽한 긴장감 속에 모든 관중이 숨을 죽이고 경기를 지켜봅니다!",  
+"두 선수의 움직임이 마치 춤을 추듯 유려합니다. 그러나 그 속에 감춰진 긴장은 여전히 팽팽합니다!",  
+"두 선수, 한 치의 양보도 없이 치열한 경합을 벌입니다. 그 누구도 물러설 생각이 없습니다!",  
+"두 선수, 눈빛만으로도 서로를 제압하려는 치열한 심리전을 벌입니다. 단 한 번의 실수도 용납되지 않는 순간입니다!",  
+"한순간의 틈을 노리는 두 선수. 그들의 집중력은 마치 칼날처럼 예리합니다!",  
+"두 선수, 가벼운 움직임 속에서 치열한 수 싸움이 이어지고 있습니다. 마치 전쟁의 서막과도 같습니다!",  
+"두 선수의 움직임에서 서로를 향한 깊은 경계심이 느껴집니다. 이 경기는 그 누구도 쉽게 포기하지 않을 것입니다!",  
+"두 선수, 한순간도 방심하지 않고 서로의 허점을 노립니다. 마치 전장의 병사들처럼 예리한 감각을 발휘합니다!",  
+"두 선수의 손짓과 발놀림이 치열하게 얽혀 있습니다. 단 한 번의 실수가 승패를 좌우할 수 있습니다!",  
+"두 선수, 마치 눈앞에 벼랑 끝에 서 있는 듯한 긴장감 속에서 경기를 펼치고 있습니다!",  
+"두 선수의 합이 마치 리듬처럼 이어집니다. 그러나 그 속에는 치명적인 순간이 도사리고 있습니다!",  
+"두 선수, 서로의 움직임을 예측하며 조심스럽게 타격을 시도합니다. 긴장의 끈을 놓을 수 없습니다!",  
+"두 선수의 치열한 경합이 계속됩니다. 그 누구도 쉽게 상대를 제압할 수 없을 것 같습니다!",  
+"두 선수, 한순간도 긴장을 늦추지 않고 팽팽한 신경전을 벌입니다. 승패는 아직 예측할 수 없습니다!",  
+"두 선수의 발놀림과 손짓이 정교하게 맞물립니다. 이 경합의 끝에 누가 웃을지 아무도 알 수 없습니다!",  
+"두 선수, 신중하게 서로의 움직임을 살피며 순간의 허점을 노립니다. 그들이 펼치는 긴장감은 숨막힐 듯합니다!",  
+"두 선수의 눈빛에서 서로를 향한 강한 의지가 느껴집니다. 그 누구도 물러설 생각이 없습니다!",  
+"두 선수, 서로의 허점을 찾기 위해 신중하게 움직입니다. 그 긴장감은 경기장을 압도합니다!",
+"두 선수의 움직임은 마치 춤을 추듯 조화를 이루지만, 그 안에 숨겨진 날카로운 긴장감은 여전히 팽팽합니다!",  
+"두 선수, 끊임없이 상대의 방어를 시험하며 그 누구도 먼저 물러설 생각이 없습니다!",  
+"두 선수의 치열한 경합 속에서 서로를 향한 집중력이 극에 달하고 있습니다!",  
+"두 선수의 한 치의 움직임도 허투루 할 수 없습니다. 이 경기는 그야말로 단 한 순간도 예측할 수 없습니다!",  
+"두 선수의 눈빛만으로도 서로를 제압하려는 치열한 심리전이 이어지고 있습니다. 긴장감이 경기장을 압도합니다!",  
+"두 선수, 한순간도 방심하지 않으며 치열한 신경전을 벌이고 있습니다. 승패를 가늠할 수 없는 경합입니다!",  
+"두 선수, 서로의 움직임을 예리하게 관찰하며 치열한 수 싸움을 이어갑니다!",  
+"두 선수, 순간의 실수조차 치명적일 수 있는 상황에서 팽팽한 긴장감 속에 경기를 이어갑니다!",  
+"두 선수의 치열한 경합 속에서 그들의 숨결조차도 긴장감을 가중시키고 있습니다!",  
+"두 선수, 한 치의 실수도 용납하지 않는 치열한 집중 속에서 경합을 이어가고 있습니다!",  
+"두 선수, 순간의 틈을 찾기 위해 서로의 움직임을 분석하며 팽팽한 신경전을 벌입니다!",  
+"두 선수의 눈빛에서 서로를 꿰뚫으려는 의지가 느껴집니다. 그 누구도 물러설 생각이 없습니다!",  
+"두 선수, 신중하게 상대의 허점을 찾아 치열한 수 싸움을 이어가고 있습니다!",  
+"두 선수의 치열한 경합 속에서 그들의 집중력이 극에 달하고 있습니다!",  
+"두 선수, 한 순간의 방심도 용납하지 않는 치열한 집중력 속에서 경합을 벌이고 있습니다!",  
+"두 선수의 움직임이 마치 리듬을 타듯 정교하게 맞물리며, 그 긴장감은 관중들을 숨죽이게 만듭니다!",  
+"두 선수, 서로의 움직임을 예리하게 파악하며 치열한 신경전을 벌이고 있습니다!",  
+"두 선수, 한 순간의 틈조차도 허락하지 않는 치열한 경합을 이어가고 있습니다!",  
+"두 선수의 치열한 경합 속에서 그들의 집중력은 마치 칼날처럼 예리하게 빛나고 있습니다!",  
+"두 선수, 서로의 움직임을 예리하게 파악하며 치열한 경합을 이어갑니다!",
+"두 선수, 그들의 숨결 하나하나가 긴장감으로 가득 차 있습니다. 이 경기는 그 누구도 쉽게 예측할 수 없습니다!",  
+"두 선수, 마치 사냥감을 노리는 맹수처럼 서로를 향한 집중력을 발휘하고 있습니다!",  
+"두 선수의 눈빛에서 서로를 제압하려는 강한 의지가 느껴집니다. 이 경기는 절대 쉽게 끝나지 않을 것입니다!",  
+"두 선수의 발놀림이 마치 춤을 추듯 조화롭게 이어지지만, 그 속에 숨겨진 긴장감은 여전히 날카롭습니다!",  
+"두 선수, 서로의 방어를 탐색하며 치열한 수 싸움을 이어갑니다. 그 누구도 먼저 물러설 생각이 없습니다!",  
+"두 선수, 한 치의 움직임도 허투루 할 수 없습니다. 그 긴장감은 경기장을 가득 채우고 있습니다!",  
+"두 선수의 눈빛에서 서로를 향한 치열한 의지가 느껴집니다. 이 경기는 단 한 순간도 방심할 수 없습니다!",  
+"두 선수, 팽팽한 긴장감 속에서 한 치의 양보도 없이 치열한 신경전을 이어가고 있습니다!",  
+"두 선수의 손짓과 발놀림이 치열하게 맞물리며, 그 긴장감은 그 누구도 방심할 수 없게 만듭니다!",  
+"두 선수, 그들의 집중력이 경기를 지배하고 있습니다. 단 한 번의 실수도 용납되지 않는 순간입니다!",  
+"두 선수의 눈빛이 마치 칼날처럼 서로를 꿰뚫으려 합니다. 그 긴장감이 경기장을 가득 채우고 있습니다!",  
+"두 선수, 서로의 움직임을 끊임없이 탐색하며 치열한 수 싸움을 이어가고 있습니다!",  
+"두 선수의 손끝에서 나오는 치열한 집중력이 경기장을 압도하고 있습니다!",  
+"두 선수, 한순간도 긴장을 늦추지 않고 서로의 허점을 찾기 위해 치열한 신경전을 벌이고 있습니다!",  
+"두 선수의 발놀림이 마치 리듬을 타듯 조화롭게 이어지지만, 그 속에 숨겨진 긴장감은 그 누구도 방심할 수 없게 만듭니다!",  
+"두 선수, 마치 칼끝에 서 있는 듯한 긴장감 속에서 경기를 이어가고 있습니다!",  
+"두 선수의 눈빛에서 서로를 향한 강한 의지가 느껴집니다. 그 누구도 쉽게 물러서지 않을 것입니다!",  
+"두 선수의 한순간도 긴장을 놓지 않는 움직임에서 치열한 집중력이 느껴집니다!",  
+"두 선수, 팽팽한 긴장감 속에서 그들의 신경전이 이어지고 있습니다. 이 경기는 그 누구도 쉽게 예측할 수 없습니다!",  
+"두 선수의 발놀림이 마치 춤을 추듯 유려하지만, 그 속에 숨겨진 날카로운 긴장감은 여전히 이어지고 있습니다!",
+"두 선수, 서로의 움직임을 예리하게 분석하며 치열한 신경전을 벌이고 있습니다!",  
+"두 선수의 치열한 집중력 속에서 그들의 신경전이 절정에 달하고 있습니다!",  
+"두 선수, 한 순간의 실수조차도 치명적일 수 있는 상황에서 치열한 경합을 이어갑니다!",  
+"두 선수의 움직임이 마치 예리한 칼날처럼 치열하게 맞물리며, 그 긴장감은 관중들의 숨을 멎게 만듭니다!",  
+"두 선수, 끊임없이 서로의 허점을 찾기 위해 치열한 신경전을 이어갑니다!",  
+"두 선수의 눈빛에서 서로를 꿰뚫으려는 강한 의지가 느껴집니다. 그 누구도 먼저 물러서지 않을 것입니다!",  
+"두 선수, 서로의 움직임을 예리하게 파악하며 단 한 순간의 실수도 용납하지 않는 치열한 경합을 벌이고 있습니다!",  
+"두 선수의 손끝에서 나오는 집중력이 마치 전장을 지배하는 전사들처럼 날카롭게 빛나고 있습니다!",  
+"두 선수, 마치 춤을 추듯 조화롭게 움직이지만, 그 속에는 치열한 전투의 긴장감이 가득합니다!",  
+"두 선수, 순간의 틈을 찾기 위해 치열한 심리전을 펼치고 있습니다. 그 누구도 쉽게 물러설 생각이 없습니다!",  
+"두 선수의 발놀림이 마치 전투의 서막을 알리는 듯한 긴장감으로 이어집니다. 그 결과는 아직 알 수 없습니다!",  
+"두 선수, 그들의 움직임이 마치 검객들의 대결처럼 날카롭고 치열합니다!",  
+"두 선수, 한 치의 양보도 없이 치열한 수 싸움을 이어가고 있습니다. 그 긴장감은 경기장을 압도합니다!",  
+"두 선수의 손끝에서 나오는 에너지가 마치 폭풍처럼 경기장을 휘감고 있습니다!",  
+"두 선수, 그들의 치열한 경합 속에서 마치 불꽃이 튀듯 팽팽한 긴장감이 이어지고 있습니다!",  
+"두 선수의 움직임에서 전사의 강인함이 느껴집니다. 그들은 절대 물러설 생각이 없습니다!",  
+"두 선수, 그들의 집중력이 경기를 지배하며 치열한 신경전이 계속되고 있습니다!",  
+"두 선수의 눈빛에서 서로를 향한 날카로운 긴장감이 느껴집니다. 이 경기는 쉽게 끝나지 않을 것입니다!",  
+"두 선수, 치열한 경합 속에서 마치 전장의 군사들처럼 서로를 탐색하고 있습니다!",  
+"두 선수의 손짓과 발놀림이 치열하게 맞물리며, 그 긴장감은 그 누구도 방심할 수 없게 만듭니다!",
+"두 선수, 서로의 움직임을 예리하게 분석하며 한순간의 실수도 허락하지 않는 치열한 경합을 벌이고 있습니다!",  
+"두 선수, 마치 칼끝에 선 듯한 긴장감 속에서 경기를 이어갑니다. 그 누구도 쉽게 물러서지 않습니다!",  
+"두 선수의 발놀림이 마치 리듬을 타듯 조화롭게 이어지지만, 그 속에는 치열한 전투의 긴장감이 도사리고 있습니다!",  
+"두 선수, 서로의 허점을 찾기 위해 끊임없이 탐색하며 치열한 신경전을 벌입니다!",  
+"두 선수, 치열한 신경전 속에서 그들의 집중력이 마치 칼날처럼 예리하게 빛나고 있습니다!",  
+"두 선수의 눈빛에서 서로를 꿰뚫으려는 강한 의지가 느껴집니다. 그 누구도 먼저 물러설 생각이 없습니다!",  
+"두 선수, 마치 전장에 선 전사들처럼 한순간도 긴장을 늦추지 않고 치열한 수 싸움을 이어갑니다!",  
+"두 선수의 발놀림이 마치 리듬을 타듯 정교하게 맞물리며, 그 긴장감은 관중들을 숨죽이게 만듭니다!",  
+"두 선수, 순간의 틈조차도 허용하지 않으며 치열한 신경전을 벌이고 있습니다!",  
+"두 선수의 치열한 경합 속에서 그들의 집중력이 마치 칼날처럼 날카롭게 빛나고 있습니다!",  
+"두 선수, 팽팽한 긴장감 속에서 단 한순간도 긴장을 늦추지 않고 경기를 이어가고 있습니다!",  
+"두 선수의 눈빛이 마치 서로를 꿰뚫으려는 강한 의지로 가득 차 있습니다. 그 누구도 쉽게 물러서지 않을 것입니다!",  
+"두 선수, 치열한 신경전 속에서 그들의 집중력이 절정에 달하고 있습니다!",  
+"두 선수의 발놀림이 마치 전투의 춤을 추듯 조화롭게 이어지지만, 그 속에는 치열한 긴장감이 도사리고 있습니다!",  
+"두 선수, 순간의 틈조차도 허용하지 않으며 치열한 경합을 이어가고 있습니다!",  
+"두 선수의 치열한 경합 속에서 그들의 집중력이 마치 날카로운 칼날처럼 빛나고 있습니다!",  
+"두 선수, 팽팽한 긴장감 속에서 그들의 신경전이 이어지고 있습니다. 이 경기는 단 한순간도 방심할 수 없습니다!",  
+"두 선수의 발놀림이 마치 리듬을 타듯 조화롭게 이어지지만, 그 속에는 치열한 전투의 긴장감이 숨어 있습니다!",  
+"두 선수, 치열한 신경전 속에서 그들의 집중력이 절정에 달하고 있습니다. 그 누구도 물러설 생각이 없습니다!",  
+"두 선수의 손끝에서 나오는 에너지가 마치 폭풍처럼 경기장을 휘감고 있습니다. 이 경기는 단 한순간도 방심할 수 없습니다!"
+            // ... 추가 텍스트
+        ];
+
+        const victoryTexts = [
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 당신은 마침내 승리의 깃발을 높이 올렸습니다, 찬란한 승리입니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 당신의 용기와 투지는 불꽃처럼 타올라, 상대를 완전히 무너뜨렸습니다. 승리의 순간입니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 당신의 영광스러운 승리가 이 순간을 영원히 빛나게 합니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 당신의 주먹이 역사를 썼습니다! 오늘 당신은 영웅입니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 승리의 함성이 울려 퍼집니다. 당신의 이름이 이 순간을 기억할 것입니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 끝까지 포기하지 않은 당신의 의지가 승리를 만들어냈습니다. 이 승리는 당신의 것입니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 상대방은 무너졌고, 당신은 승리자로 남았습니다. 이 승리는 영원히 기억될 것입니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 승리의 순간, 당신의 눈앞에는 오직 영광만이 펼쳐집니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 당신의 투지가 상대를 압도했습니다! 승리의 기쁨이 당신을 기다립니다!</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #00ff00, 0 0 4px #00ff00, 0 0 6px #00ff00;">
+    🚩 당신은 마지막까지 싸워 승리를 쟁취했습니다. 이제 승리의 빛이 당신을 감쌀 것입니다!</strong>`
+];
+
+
+const defeatTexts = [
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신은 싸웠지만, 운명의 흐름은 당신을 외면했습니다. 패배를 인정할 때입니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신의 투지는 끝까지 이어졌으나, 오늘은 운명의 장벽에 막히고 말았습니다. 패배의 시간이 찾아왔습니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신은 마지막까지 저항했지만, 오늘은 패배의 쓴 잔을 마실 수밖에 없었습니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신의 모든 노력에도 불구하고, 승리의 여신은 당신을 외면했습니다. 패배를 받아들일 시간입니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 상대의 강력함에 결국 무릎을 꿇고 말았습니다. 패배의 순간이 왔습니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신의 모든 전략이 실패하고 말았습니다. 오늘은 패배를 받아들여야 합니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신의 힘이 닿지 못했습니다. 패배의 쓴 맛을 느껴야 할 시간입니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신은 모든 것을 걸었으나, 결과는 패배였습니다. 이 패배를 기억하고 일어나야 할 때입니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 오늘은 당신의 날이 아니었습니다. 패배의 어둠이 당신을 감싸고 있습니다.</strong>`,
+    `<strong style="color: black; text-shadow: 0 0 2px #ff0000, 0 0 4px #ff0000, 0 0 6px #ff0000;">
+    🏳️ 당신의 용기는 빛났으나, 결국 패배했습니다. 이 패배를 딛고 다시 일어설 때입니다.</strong>`
+];
+
+        // 게임 초기화
+        initializeGame();
+    </script>
+</body>
+</html>
