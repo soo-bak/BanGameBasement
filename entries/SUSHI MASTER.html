@@ -1,0 +1,1191 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sushi Master</title>
+    <link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;700&display=swap" rel="stylesheet">
+    
+    <audio id="bgm" loop autoplay>
+        <source src="https://www.televisiontunes.com/uploads/audio/Jaws.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
+    
+    <style>
+        body {
+            font-family: 'Pretendard', sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        #game-container {
+            background-color: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            max-width: 500px;
+            width: 100%;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        button {
+            background-color: #4CAF50;
+            border: none;
+            color: white;
+            padding: 10px 20px;
+            text-align: center;
+            text-decoration: none;
+            display: inline-block;
+            font-size: 16px;
+            margin: 4px 2px;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #cccccc;
+            cursor: not-allowed;
+        }
+        .gauge-container {
+    width: 100%;
+    height: 20px;
+    background-color: #ddd;
+    position: relative;
+    margin-bottom: 10px;
+}
+.gauge {
+    height: 100%;
+    width: 0;
+    background-color: #4CAF50;
+    transition: width 0.1s;
+}
+.gauge-value {
+    position: absolute;
+    right: 5px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    color: #000;
+    background-color: rgba(255, 255, 255, 0.7);
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+        .gauge-label {
+            position: absolute;
+            right: 5px;
+            top: 0;
+            font-size: 12px;
+        }
+        #reputation-gauge {
+            width: 100%;
+            height: 10px;
+            background-color: #ddd;
+            margin-top: 5px;
+        }
+        #reputation-progress {
+            height: 100%;
+            width: 0;
+            background-color: #4CAF50;
+        }
+        #customer-info {
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 15px;
+}
+
+.customer-header {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 10px;
+}
+
+.customer-info {
+    display: flex;
+    background-color: #f0f0f0;
+    padding: 15px;
+    border-radius: 5px;
+    margin-top: 30px;
+    margin-bottom: 15px;
+    align-items: flex-start;
+}
+
+.customer-avatar {
+    background-color: #ddd;
+    border-radius: 50%;
+    width: 60px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-right: 15px;
+    overflow: hidden;
+}
+
+.customer-emoji {
+    font-size: 40px;
+    line-height: 1;
+}
+
+.customer-name {
+    font-weight: bold;
+    margin-bottom: 5px;
+    align-self: flex-start;
+    width: 100%;
+}
+
+.customer-order {
+    font-style: italic;
+    font-weight: bold;
+    margin-bottom: 10px;
+    text-align: left;
+    align-self: stretch;
+    width: 100%;
+}
+
+.customer-price {
+    text-align: left;
+    margin: 2px 0;
+    width: 100%;
+    align-self: flex-end;
+}
+
+.customer-taste {
+    text-align: left;
+    margin: 2px 0;
+    width: 100%;
+    align-self: flex-end;
+}
+
+.customer-stats {
+    font-size: 0.9em;
+    color: #555;
+}
+
+.customer-details {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+}
+.cooking-element {
+    margin-bottom: 15px;
+}
+
+.cooking-title {
+    font-weight: bold;
+}
+
+.taste-result {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+}
+
+.result-emoji {
+    margin-left: 10px;
+}
+
+.player-taste, .customer-taste {
+    margin: 0 10px;
+}
+
+#current-title {
+    font-weight: bold;
+}
+
+#current-title.주방보조 {
+    font-weight: bold;
+    text-shadow: 0 0 5px black;
+}
+
+#current-title.주방장 {
+    font-weight: bold;
+    text-shadow: 0 0 5px yellow;
+}
+
+#current-title.미슐랭-쉐프 {
+    font-weight: bold;
+    text-shadow: 0 0 5px red;
+}
+
+#current-title.마스터-초밥왕 {
+    font-weight: bold;
+    text-shadow: 0 0 5px purple;
+}
+
+.separator {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 15px 0;
+}
+
+#result {
+    background-color: #e6f3ff;
+    padding: 10px;
+    border-radius: 5px;
+    margin-top: 15px;
+}
+
+.result-title {
+    font-weight: bold;
+}
+
+        .disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        #reputation-container {
+    position: relative;
+    margin-top: 10px;
+    margin-bottom: 30px;
+    width: 100%;
+}
+#reputation-bar {
+    width: 100%;
+    height: 10px;
+    background-color: #ddd;
+    border-radius: 5px;
+}
+#reputation-progress {
+    height: 100%;
+    width: 0;
+    background-color: #4CAF50;
+    border-radius: 5px;
+    transition: width 0.5s;
+}
+#next-title {
+    position: absolute;
+    right: 0;
+    bottom: -20px;
+    font-size: 12px;
+    color: #666;
+}
+#game-controls {
+    margin-top: 15px;
+}
+
+#fish-selection {
+    margin-top: 15px;
+    width: 100%;
+    padding: 5px;
+}
+#game-container {
+    max-height: 100vh;
+    overflow-y: auto;
+}
+
+.special-customer-result {
+    text-shadow: 0 0 5px purple, 0 0 10px purple, 0 0 15px purple;
+    color: white;
+}
+
+.special-customer-name {
+    color: white;
+    text-shadow: 0 0 5px purple, 0 0 10px purple, 0 0 15px purple, 0 0 20px purple;
+    font-weight: bold;
+}
+
+#fish-selection option:disabled {
+    color: #999;
+    background-color: #f0f0f0;
+}
+
+.satisfaction-low {
+    color: red;
+}
+
+.satisfaction-medium {
+    color: black;
+}
+
+.satisfaction-high {
+    color: green;
+}
+
+.special-satisfaction-low {
+    color: red;
+    text-shadow: 0 0 5px purple, 0 0 10px purple, 0 0 15px purple;
+}
+
+.special-satisfaction-medium {
+    color: white;
+    text-shadow: 0 0 5px purple, 0 0 10px purple, 0 0 15px purple;
+}
+
+.special-satisfaction-high {
+    color: green;
+    text-shadow: 0 0 5px purple, 0 0 10px purple, 0 0 15px purple;
+}
+    </style>
+</head>
+<body>
+    <div id="game-container">
+        <h1>🍣 SUSHI MASTER</h1>
+        <div id="player-info">
+            <p>💰 MONEY : <span id="money">30000</span>원</p>
+            <p>🏅 현재 자리: <span id="current-title">아르바이트생</span></p>
+            <p>🍳 평판 : <span id="reputation">0</span></p>
+            <div id="reputation-container">
+                <div id="reputation-bar">
+                    <div id="reputation-progress"></div>
+                </div>
+                <span id="next-title"></span>
+            </div>
+        </div>
+        <div id="customer-info" class="customer-info" style="display: none;">
+            <div class="customer-avatar">
+                <span id="customer-emoji" class="customer-emoji"></span>
+            </div>
+            <div class="customer-details">
+                <h3 id="customer-name" class="customer-name"></h3>
+                <p id="customer-order" class="customer-order"></p>
+                <p class="customer-price" style="display: none;">제시 가격: ₩<span id="customer-price"></span></p>
+                <p class="customer-taste" style="display: none;">손님 Taste: <span id="customer-total-taste"></span></p>
+            </div>
+        </div>
+        <div id="game-controls">
+            <button id="receive-customer">손님 받기</button>
+            <button id="start-cooking" disabled>요리 시작</button>
+        </div>
+        <select id="fish-selection" style="display: none;">
+            <option value="">횟감 선택</option>
+          </select>
+          <p id="selected-fish"></p>
+        
+        <div id="cooking-area" style="display: none;">
+            <div class="cooking-element">
+                <p>🍚밥의 익힘 정도</p>
+                <div class="gauge-container">
+                    <div class="gauge"></div>
+                    <span class="gauge-value">0</span>
+                </div>
+                <button class="cooking-button">Cook!</button>
+                <div class="taste-result">
+                    <span class="result-emoji"></span>
+                    <span>당신의 Taste : <span class="player-taste">50</span></span>
+                    <span>손님의 Taste : <span class="customer-taste">50</span></span>
+                </div>
+            </div>
+            <hr class="separator">
+            <div class="cooking-element">
+                <p>🔪회의 두께</p>
+                <div class="gauge-container">
+                    <div class="gauge"></div>
+                    <span class="gauge-value">0</span>
+                </div>
+                <button class="cooking-button">Cook!</button>
+                <div class="taste-result">
+                    <span class="result-emoji"></span>
+                    <span class="result-emoji"></span>
+        <span>당신의 Taste : <span class="player-taste"></span></span>
+        <span>손님의 Taste : <span class="customer-taste"></span></span>
+                </div>
+            </div>
+            <hr class="separator">
+            <div class="cooking-element">
+                <p>🌊바다의 영혼</p>
+                <div class="gauge-container">
+                    <div class="gauge"></div>
+                    <span class="gauge-value">0</span>
+                </div>
+                <button class="cooking-button">Cook!</button>
+                <div class="taste-result">
+                    <span class="result-emoji"></span>
+                    <span class="result-emoji"></span>
+        <span>당신의 Taste : <span class="player-taste"></span></span>
+        <span>손님의 Taste : <span class="customer-taste"></span></span>
+                </div>
+            </div>
+        </div>
+        <div id="result">
+            <p class="result-title">✍️손님의 후기 : <span id="result-text"></span></p>
+            <p>얻은 돈 : <span id="earned-money"></span></p>
+            <p>평판 변화 : <span id="reputation-change"></span></p>
+        </div>
+    </div>
+    <script>
+const titles = [
+    { min: 0, title: '아르바이트생' },
+    { min: 300, title: '주방보조' },
+    { min: 1000, title: '주방장' },
+    { min: 3000, title: '미슐랭-쉐프' },
+    { min: 10000, title: '마스터-초밥왕' }
+];
+    // 게임의 현재 상태를 저장하는 객체
+let gameState = {
+    money: 30000,          // 현재 보유 금액
+    reputation: 0,         // 현재 평판
+    title: '아르바이트생', // 현재 칭호
+    currentCustomer: null, // 현재 손님 정보
+    cookingStep: 0,        // 현재 요리 단계 (0: 밥의 익힘 정도, 1: 회의 두께, 2: 바다의 영혼)
+    currentAnimation: null,// 현재 진행 중인 애니메이션
+    selectedFish: null,    // 선택된 횟감
+    isCooking: false       // 요리 중인지 여부
+};
+
+// 사용 가능한 횟감 목록
+const fishTypes = [
+    { name: "팔딱이는 고등어", price: 3000, effect: null },
+    { name: "초여름 파도를 스친 전갱이💸", price: 5000, effect: {satisfactionRange: [8, 10], tip: [3000, 5000]} },
+    { name: "은빛 바람을 가르는 삼치💸", price: 7000, effect: {satisfactionRange: [7, 10], tip: [3000, 5000]} },
+    { name: "바다의 투명함을 담은 광어💸", price: 10000, effect: {satisfactionRange: [8, 10], tip: [5000, 10000]} },
+    { name: "녹아내리는 듯한 연어💸", price: 12000, effect: {satisfactionRange: [7, 10], tip: [5000, 10000]} },
+    { name: "깊은 수심의 맛, 우럭👏", price: 20000, effect: {satisfactionRange: [8, 10], reputation: [5, 10]} },
+    { name: "갯바람을 머금은 농어👏", price: 30000, effect: {satisfactionRange: [7, 10], reputation: [5, 10]} },
+    { name: "겨울바다의 전설, 방어👏", price: 40000, effect: {satisfactionRange: [8, 10], reputation: [10, 20]} },
+    { name: "파도 속 균형을 이룬 가자미👏", price: 50000, effect: {satisfactionRange: [7, 10], reputation: [10, 20]} },
+    { name: "바다의 쫄깃함을 품은 문어💸👏", price: 70000, effect: {satisfactionRange: [8, 10], tip: 10000, reputation: [10, 20]} },
+    { name: "바다 내음을 머금은 도다리💸👏", price: 90000, effect: {satisfactionRange: [7, 10], tip: 15000, reputation: [10, 20]} },
+    { name: "황금빛 비늘의 귀족, 참돔💸👏", price: 100000, effect: {satisfactionRange: [8, 10], tip: 20000, reputation: [20, 30]} },
+    { name: "독을 품은 미식의 경지, 복어💸👏", price: 150000, effect: {satisfactionRange: [8, 10], tip: [10000, 20000], reputation: [10, 20]} },
+    { name: "바람처럼 녹아내리는 참치 뱃살💸👏", price: 300000, effect: {satisfactionRange: [6, 10], tip: [50000, 100000], reputation: [30, 50]} },
+    { name: "바다의 정수를 담은 대왕참치 오도로💸👏", price: 500000, effect: {satisfactionRange: [5, 10], tip: [50000, 120000], reputation: [50, 100]} }
+];
+
+// 손님 그룹 정의
+const customerGroups = [
+    {
+        characters: ['🕺 몸치 댄서', '👷 엄격한 근로자', '🧑‍🔧 바꿔치는 정비사', '🧑‍💼 비범한 직장인', '💂 든든한 근위병', '🏌️ 비즈니스 골프선수', '🧑‍🏭 살인의 용접공'],
+        priceRange: [5000, 20000],
+        reputationBase: 0,
+        reputationIncrement: 5,
+        speed: 'slow'
+    },
+    {
+        characters: ['🧑‍💻 클릭을 모르는 직원', '🤸 날렵한 스트릿 댄서', '🤹 재미없는 광대', '👮 변절한 경찰', '🫅 탐관오리 2세', '🎅 귀찮은 산타', '🏋️ 스테로이드 역도선수', '🧑‍🍳 악마의 요리사', '🧑‍🏫 도태된 선생님'],
+        priceRange: [20000, 50000],
+        reputationBase: -10,
+        reputationIncrement: 7,
+        speed: 'normal'
+    },
+    {
+        characters: ['🧑‍🎨 색맹 화가', '🧑‍🌾 저승의 농부', '🦹 가면쓴 지명수배범', '🧑‍🚒 방화범 소방관', '🧑‍🎓 멍청한 석사', '🧑‍🔬 미치광이 과학자', '🧑‍🎤 죽음의 락스타'],
+        priceRange: [50000, 100000],
+        reputationBase: -30,
+        reputationIncrement: 10,
+        speed: 'fast'
+    },
+    {
+        characters: ['🧝 난쟁이 엘프', '🧑‍⚖️ 편파적인 판사', '🧙‍♂️ AI를 활용하는 마법사', '🥷 은밀한 닌자', '🧚 못생긴 요정', '🧛 피를 못보는 뱀파이어', '🦸 평범한 슈퍼맨'],
+        priceRange: [100000, 300000],
+        reputationBase: -50,
+        reputationIncrement: 15,
+        speed: 'very-fast'
+    },
+    {
+        characters: ['🧑‍⚕️ 치매 의사', '🧜 삼지창 든 인어', '🧑‍🚀 춤추는 우주인'],
+        priceRange: [300000, 500000],
+        reputationBase: -100,
+        reputationIncrement: 25,
+        speed: 'super-fast'
+    }
+];
+
+// 특별 손님 정의
+const specialCustomers = [
+    { name: '👤 의문의 백종원', price: 100, isSpecial: true },
+    { name: '👤 의문의 안성재', price: 100, isSpecial: true }
+];
+
+const specialCustomerReputationChanges = [-100, -50, -20, 0, 50, 70, 100, 150, 300, 500];
+
+// 랜덤 손님 선택 함수
+function selectRandomCustomer() {
+    if (['주방보조', '주방장', '미슐랭-쉐프', '마스터-초밥왕'].includes(gameState.title) && Math.random() < 0.1) {
+        // 특별 손님 처리 (변경 없음)
+        const specialCustomer = specialCustomers[Math.floor(Math.random() * specialCustomers.length)];
+        return {
+            ...specialCustomer,
+            group: { speed: getSpeedForSpecialCustomer(gameState.title) },
+            tastes: generateRandomTastes(),
+            isSpecial: true
+        };
+    }
+    
+    // 일반 손님 처리
+    let availableGroups;
+    switch (gameState.title) {
+        case '아르바이트생':
+            availableGroups = customerGroups.slice(0, 1);
+            break;
+        case '주방보조':
+            availableGroups = customerGroups.slice(0, 2);
+            break;
+        case '주방장':
+            availableGroups = customerGroups.slice(0, 3);
+            break;
+        case '미슐랭-쉐프':
+            availableGroups = customerGroups.slice(0, 4);
+            break;
+        case '마스터-초밥왕':
+            availableGroups = customerGroups;
+            break;
+    }
+
+    const randomGroup = availableGroups[Math.floor(Math.random() * availableGroups.length)];
+    const randomCharacter = randomGroup.characters[Math.floor(Math.random() * randomGroup.characters.length)];
+    
+    // 100원 단위로 가격 조정
+    const minPrice = Math.ceil(randomGroup.priceRange[0] / 100) * 100;
+    const maxPrice = Math.floor(randomGroup.priceRange[1] / 100) * 100;
+    const price = Math.floor(Math.random() * ((maxPrice - minPrice) / 100 + 1)) * 100 + minPrice;
+    
+    return {
+        name: randomCharacter,
+        price: price,
+        group: randomGroup,
+        tastes: generateRandomTastes()
+    };
+}
+
+
+function getSpeedForSpecialCustomer(title) {
+    switch (title) {
+        case '주방보조': return 'fast';
+        case '주방장': return 'very-fast';
+        case '미슐랭-쉐프':
+        case '마스터-초밥왕': return 'super-fast';
+        default: return 'normal';
+    }
+}
+
+// 랜덤 Taste 생성 함수
+function generateRandomTastes() {
+    const totalTaste = Math.floor(Math.random() * 291) + 10; // 10 to 300
+    const taste1 = Math.min(Math.floor(Math.random() * (totalTaste - 2)) + 1, 100);
+    const taste2 = Math.min(Math.floor(Math.random() * (totalTaste - taste1 - 1)) + 1, 100);
+    const taste3 = Math.min(totalTaste - taste1 - taste2, 100);
+    return [taste1, taste2, taste3];
+}
+
+// 새로운 손님을 받는 함수
+function receiveCustomer() {
+    gameState.currentCustomer = selectRandomCustomer();
+    displayCustomerInfo();
+    document.getElementById('receive-customer').disabled = true;
+    document.getElementById('fish-selection').style.display = 'block';
+    document.getElementById('start-cooking').disabled = true;
+    document.getElementById('cooking-area').style.display = 'none';
+    resetCookingArea();
+    updateButtonStyles();
+    gameState.isCooking = false;
+
+    // 손님 정보 표시
+    document.getElementById('customer-info').style.display = 'block';
+    document.querySelector('.customer-price').style.display = 'block';
+    document.querySelector('.customer-taste').style.display = 'block';
+
+    // 횟감 선택 옵션 초기화 및 표시
+    const fishSelection = document.getElementById('fish-selection');
+    fishSelection.innerHTML = '<option value="">횟감 선택</option>';
+    fishTypes.forEach(fish => {
+        const option = document.createElement('option');
+        option.value = fish.name;
+        option.textContent = `${fish.name} - ${fish.price}원`;
+        if (gameState.money < fish.price) {
+            option.disabled = true;
+        }
+        fishSelection.appendChild(option);
+    });
+    fishSelection.style.display = 'block';
+}
+// 손님 정보를 화면에 표시하는 함수
+function displayCustomerInfo() {
+    const customerEmoji = gameState.currentCustomer.name.split(' ')[0];
+    const customerName = gameState.currentCustomer.name.split(' ').slice(1).join(' ');
+    document.getElementById('customer-emoji').textContent = customerEmoji;
+    
+    const customerNameElement = document.getElementById('customer-name');
+    customerNameElement.textContent = customerName;
+    
+    // 특별 손님인 경우 네온 효과 클래스 추가
+    if (gameState.currentCustomer.isSpecial) {
+        customerNameElement.classList.add('special-customer-name');
+    } else {
+        customerNameElement.classList.remove('special-customer-name');
+    }
+    
+    document.getElementById('customer-order').textContent = getRandomOrder();
+    document.getElementById('customer-price').textContent = gameState.currentCustomer.price;
+    document.getElementById('customer-total-taste').textContent = gameState.currentCustomer.tastes.reduce((a, b) => a + b, 0);
+}
+
+// 횟감 선택 UI를 업데이트하는 함수
+function updateFishSelectionUI() {
+    document.querySelectorAll('#fish-selection button').forEach(button => {
+        button.classList.toggle('selected', button.textContent.includes(gameState.selectedFish.name));
+    });
+}
+
+// 랜덤 주문 문장 선택 함수
+function getRandomOrder() {
+    const orders = [
+        "희미한 등대빛을 접시에 담아주시오.",
+"밀려왔다 사라진 행복을 한 점 맛보고 싶소.",
+"조용히 흐르는 시간의 맛을 가져오시오.",
+"바다에 빠트린 내 첫사랑을 꺼내주시오.",
+"물결처럼 스쳐 간 그리움을 얹어주시오.",
+"소금바람에 씻긴 청춘을 한 입에 주시오.",
+"깊은 파도의 어둠을 맛보고 싶소.",
+"사라진 물고기들의 비밀을 내놓으시오.",
+"파도 끝자락에 맺힌 한숨을 담아주시오.",
+"바닷속 침묵을 음미하게 해주시오.",
+"검은 해류 속 잃어버린 나를 찾아주시오.",
+"멀어진 항구의 향기를 한 접시 내주시오.",
+"비린내에 스친 연민을 맛보게 해주시오.",
+"미지의 바다로 떠나기 전 한 입 주시오.",
+"바닷새의 노래를 회로 떠다 주시오.",
+"조용한 심연 속의 위안을 주시오.",
+"밤바다의 어둠을 고요히 담아주시오.",
+"바다 속 약속이 회로 태어나길 바라오.",
+"한때 빛났던 별의 맛을 가져오시오.",
+"소용돌이처럼 요동친 나의 감정을 내오시오.",
+"파도에 씻긴 추억 한 접시 주시오.",
+"눈물로 염장한 사랑을 맛보고 싶소.",
+"가슴 한켠의 서늘함을 회로 올려주시오.",
+"바다의 안개를 품은 신비를 내놓으시오.",
+"외로움을 간장에 담가 주시오.",
+"내 마음의 해일 한 접시 부탁하오.",
+"바람에 흩어진 꿈을 음미하게 해주시오.",
+"입안에서 녹는 파도 한 조각 주시오.",
+"젖은 달빛을 회로 떠오시오.",
+"미련이 남은 바다의 끝 맛을 보여주시오.",
+"염원으로 양념한 회 한 접시를 부탁하오.",
+"이별의 짠맛이 그리워졌소.",
+"고요함을 바닥까지 맛보게 해주시오.",
+"해무에 갇힌 낭만 한 접시를 주시오.",
+"심연 속 진실을 회로 얹어주시오.",
+"물거품처럼 사라진 시간을 내오시오.",
+"바다에 남긴 나의 흔적을 돌려주시오.",
+"끝없는 파도처럼 이어진 인연을 담아주시오.",
+"소금기로 채운 외침을 음미하게 해주시오.",
+"바닷바람 한 모금과 함께 주시오.",
+"안개 속에 잃어버린 희망을 찾아주시오.",
+"마음 깊숙이 스민 염원을 한 입에 맛보겠소.",
+"식어버린 파도의 온도를 느끼게 해주시오.",
+"달아난 마음을 낚아 올려주시오.",
+"수평선에 걸린 그리움을 한 점 주시오.",
+"아련함을 회로 떠다 주시오.",
+"쓸쓸한 밤하늘 맛이 궁금하오.",
+"노을빛 사랑을 얹어주시오.",
+"파도에 쓸려간 꿈을 회로 내놓으시오.",
+"젖은 추억을 건져 한 조각 주시오."
+    ];
+    return orders[Math.floor(Math.random() * orders.length)];
+}
+
+// 요리를 시작하는 함수
+function startCooking() {
+    if (!gameState.selectedFish) {
+        alert("횟감을 먼저 선택해주세요.");
+        return;
+    }
+    document.getElementById('cooking-area').style.display = 'block';
+    document.getElementById('fish-selection').disabled = true;
+    document.getElementById('start-cooking').disabled = true; // 요리 시작 버튼 비활성화
+    gameState.cookingStep = 0;
+    setupCookingStep();
+    gameState.isCooking = true;
+    updateButtonStyles();
+}
+
+
+function selectFish(fishName) {
+    const selectedFish = fishTypes.find(fish => fish.name === fishName);
+    if (selectedFish && gameState.money >= selectedFish.price) {
+        gameState.selectedFish = selectedFish;
+        document.getElementById('start-cooking').disabled = false;
+        updateButtonStyles();
+    }
+}
+
+
+// 각 요리 단계를 설정하는 함수
+function setupCookingStep() {
+    const cookingElements = document.querySelectorAll('.cooking-element');
+    cookingElements.forEach((el, index) => {
+        el.style.display = 'block';
+        if (index === gameState.cookingStep) {
+            el.querySelector('.gauge').style.width = '0%';
+            el.querySelector('.cooking-button').disabled = false;
+        } else {
+            el.querySelector('.cooking-button').disabled = true;
+        }
+    });
+    
+    const currentElement = cookingElements[gameState.cookingStep];
+    const gauge = currentElement.querySelector('.gauge');
+    const gaugeValue = currentElement.querySelector('.gauge-value');
+    const speed = getSpeed();
+    
+    let position = 0;
+    let direction = 1;
+    
+    if (gameState.currentAnimation) {
+        clearInterval(gameState.currentAnimation);
+    }
+    
+    gameState.currentAnimation = setInterval(() => {
+        position += direction * speed;
+        if (position >= 100 || position <= 0) {
+            direction *= -1;
+            position = Math.max(0, Math.min(100, position));
+        }
+        gauge.style.width = `${position}%`;
+        gaugeValue.textContent = Math.round(position);
+    }, 50); // 50ms 간격으로 업데이트 (초당 20번)
+}
+// 속도 결정 함수
+function getSpeed() {
+    if (gameState.currentCustomer.isSpecial) {
+        switch (gameState.currentCustomer.group.speed) {
+            case 'fast': return 3;
+            case 'very-fast': return 4;
+            case 'super-fast': return 5;
+            default: return 2;
+        }
+    } else {
+
+    if (gameState.currentCustomer.isSpecial) {
+        switch (gameState.title) {
+            case '아르바이트생': return 1;
+            case '주방 보조': return 2;
+            case '주방장': return 3;
+            default: return 4;
+        }
+    } else {
+        switch (gameState.currentCustomer.group.speed) {
+            case 'slow': return 1;
+            case 'normal': return 2;
+            case 'fast': return 3;
+            case 'very-fast': return 4;
+            case 'super-fast': return 5;
+        }
+    }
+}
+}
+
+// 요리 단계를 진행하는 함수
+function cookingStep(element) {
+    clearInterval(gameState.currentAnimation);
+    cancelAnimationFrame(gameState.currentAnimation);
+    const playerTaste = parseInt(element.querySelector('.gauge').style.width);
+    const customerTaste = gameState.currentCustomer.tastes[gameState.cookingStep];
+    
+    element.querySelector('.player-taste').textContent = playerTaste;
+    element.querySelector('.customer-taste').textContent = customerTaste;
+    
+    const difference = Math.abs(playerTaste - customerTaste);
+    let emoji;
+    if (difference < 10) emoji = '🥰';
+    else if (difference < 20) emoji = '🤔';
+    else emoji = '🤬';
+    
+    element.querySelector('.player-taste').textContent += ` ${emoji}`;
+    element.querySelector('.cooking-button').disabled = true; // 현재 단계 버튼 비활성화
+
+    gameState.cookingStep++;
+    if (gameState.cookingStep < 3) {
+        setupCookingStep();
+    } else {
+        showResult();
+    }
+}
+
+// 요리 결과를 표시하는 함수
+function showResult() {
+    const cookingElements = document.querySelectorAll('.cooking-element');
+    const emojis = Array.from(cookingElements).map(el => el.querySelector('.player-taste').textContent.split(' ')[1]);
+    const satisfactionLevel = calculateSatisfactionLevel(emojis);
+    
+    const resultText = getResultText(satisfactionLevel);
+    const resultElement = document.getElementById('result-text');
+    const earnedMoney = calculateEarnedMoney(satisfactionLevel);
+    const reputationChange = calculateReputationChange(satisfactionLevel);
+    
+    let additionalTip = 0;
+    let additionalReputation = 0;
+    
+    // 횟감 효과 적용 (특별 손님에게도 적용)
+    if (gameState.selectedFish.effect) {
+        const effect = gameState.selectedFish.effect;
+        if (satisfactionLevel >= effect.satisfactionRange[0] && satisfactionLevel <= effect.satisfactionRange[1]) {
+            if (effect.tip) {
+                if (Array.isArray(effect.tip)) {
+                    additionalTip = Math.floor(Math.random() * (effect.tip[1] - effect.tip[0] + 1)) + effect.tip[0];
+                } else {
+                    additionalTip = effect.tip;
+                }
+            }
+            if (effect.reputation) {
+                additionalReputation = Math.floor(Math.random() * (effect.reputation[1] - effect.reputation[0] + 1)) + effect.reputation[0];
+            }
+        }
+    }
+    
+    const totalEarnedMoney = gameState.currentCustomer.isSpecial ? (100 + additionalTip) : (earnedMoney + additionalTip);
+    const totalReputationChange = reputationChange + additionalReputation;
+    
+    // 게임 상태 업데이트
+    gameState.money += totalEarnedMoney - gameState.selectedFish.price;
+    gameState.reputation += totalReputationChange;
+    updateTitle();
+    
+// 만족도에 따른 클래스 설정
+let satisfactionClass;
+    if (gameState.currentCustomer.isSpecial) {
+        if (satisfactionLevel <= 3) {
+            satisfactionClass = 'special-satisfaction-low';
+        } else if (satisfactionLevel <= 7) {
+            satisfactionClass = 'special-satisfaction-medium';
+        } else {
+            satisfactionClass = 'special-satisfaction-high';
+        }
+    } else {
+        if (satisfactionLevel <= 3) {
+            satisfactionClass = 'satisfaction-low';
+        } else if (satisfactionLevel <= 7) {
+            satisfactionClass = 'satisfaction-medium';
+        } else {
+            satisfactionClass = 'satisfaction-high';
+        }
+    }
+
+
+    // 결과 표시
+    document.getElementById('result').style.display = 'block';
+    
+    if (gameState.currentCustomer.isSpecial) {
+        document.getElementById('result-text').innerHTML = `<span class="${satisfactionClass}">${resultText}</span>`;
+        document.getElementById('earned-money').innerHTML = `<span style="color: purple; font-weight: bold;">100원</span>${additionalTip > 0 ? ` + <span style="color: blue; font-weight: bold;">팁:${additionalTip}원</span>` : ''} (특별 손님)`;
+        document.getElementById('reputation-change').innerHTML = `<span style="color: purple; font-weight: bold;">${reputationChange}</span>${additionalReputation > 0 ? ` + <span style="color: blue; font-weight: bold;">횟감효과:+${additionalReputation}</span>` : ''} (특별 손님)`;
+    } else {
+        document.getElementById('result-text').innerHTML = `<span class="${satisfactionClass}">${resultText}</span>`;
+        document.getElementById('earned-money').innerHTML = `${earnedMoney}원${additionalTip > 0 ? ` + <span style="color: blue; font-weight: bold;">팁:${additionalTip}원</span>` : ''}`;
+        document.getElementById('reputation-change').innerHTML = `${reputationChange}${additionalReputation > 0 ? ` + <span style="color: blue; font-weight: bold;">횟감효과:+${additionalReputation}</span>` : ''}`;
+    }
+    
+    updatePlayerInfo();
+    
+    document.getElementById('receive-customer').disabled = false;
+    document.getElementById('start-cooking').disabled = true;
+    gameState.isCooking = false;
+    updateButtonStyles();
+}
+
+// 요리 영역을 초기화하는 함수
+function resetCookingArea() {
+    const cookingElements = document.querySelectorAll('.cooking-element');
+    cookingElements.forEach(el => {
+        el.style.display = 'none';
+        el.querySelector('.gauge').style.width = '0%';
+        el.querySelector('.player-taste').textContent = '';
+        el.querySelector('.customer-taste').textContent = '';
+        el.querySelector('.cooking-button').disabled = false;
+    });
+    document.getElementById('result').style.display = 'none';
+    
+    // 횟감 선택 초기화 및 활성화
+    const fishSelection = document.getElementById('fish-selection');
+    fishSelection.value = '';
+    fishSelection.disabled = false;  // 비활성화 해제
+    fishSelection.style.display = 'none';  // 기본적으로 숨김 처리
+
+    document.getElementById('selected-fish').textContent = '';  // 선택된 횟감 초기화
+
+    gameState.selectedFish = null;
+    gameState.cookingStep = 0;
+    gameState.isCooking = false;
+}
+
+// 만족도 레벨 계산 함수
+function calculateSatisfactionLevel(emojis) {
+    const emojiCounts = emojis.reduce((acc, emoji) => {
+        acc[emoji] = (acc[emoji] || 0) + 1;
+        return acc;
+    }, {});
+    
+    if (emojiCounts['🥰'] === 3) return 10;
+    if (emojiCounts['🥰'] === 2 && emojiCounts['🤔'] === 1) return 9;
+    if (emojiCounts['🥰'] === 2 && emojiCounts['🤬'] === 1) return 8;
+    if (emojiCounts['🥰'] === 1 && emojiCounts['🤔'] === 2) return 7;
+    if (emojiCounts['🥰'] === 1 && emojiCounts['🤔'] === 1 && emojiCounts['🤬'] === 1) return 6;
+    if (emojiCounts['🤔'] === 3) return 5;
+    if (emojiCounts['🤔'] === 2 && emojiCounts['🤬'] === 1) return 4;
+    if (emojiCounts['🤔'] === 1 && emojiCounts['🤬'] === 2) return 3;
+    if (emojiCounts['🤬'] === 2 && emojiCounts['🤔'] === 1) return 2;
+    return 1;
+}
+
+// 결과 텍스트 가져오기 함수
+function getResultText(satisfactionLevel) {
+    const resultTexts = [
+        [
+            "이걸 먹느니 차라리 내 혀를 갈매기에게 바치겠소.",
+"내 혀가 항해 중 조난당한 기분이오.",
+"이건 바다도 거부한 실패작이오.",
+"먹자마자 내 영혼이 육지로 도망쳤소.",
+"이건 미식이 아니라 처벌이오.",
+"입안에서 전쟁이 벌어졌소. 그리고 내가 졌소.",
+"바다의 저주를 맛본 기분이구려.",
+"내 위장까지 분노하고 있소.",
+"심지어 바닷물도 이보다 맛있겠소.",
+"이건 요리사가 나에게 무언의 복수라도 한 건가?"
+        ],
+        [
+            "이 초밥은 바다를 모욕하고 있소.",
+"차라리 생선보다 내가 더 신선하겠소.",
+"이걸 먹고 감정을 잃어버렸소.",
+"미각이 나를 떠나기 직전이오.",
+"바다를 이렇게 대하는 건 죄악이오.",
+"생선도 내게 사과하고 싶어할 거요.",
+"이건 차라리 개밥으로나 쓰시오.",
+"고독을 씹는 기분이 이렇겠지요.",
+"내일은 해초라도 씹어보겠소.",
+"바다를 삼킨 것이 이토록 쓰디쓸 줄이야."
+        ],
+        [
+            "희미한 짠맛과 나쁜 기분이 교차했소.",
+"먹어도 먹은 것 같지 않소.",
+"내 혀가 무감각해졌소.",
+"바다의 흔적이 희미하게 남아있을 뿐이오.",
+"생선도 나를 용서하지 않겠소.",
+"이건 미각의 모험이 아니라 시련이었소.",
+"혀 끝에서 길을 잃었소.",
+"차라리 바닷바람을 들이마시는 게 나았겠소.",
+"어중간한 맛이 사람을 더 괴롭히는 법이오.",
+"이걸 먹고도 무사할 수 있을지 모르겠소."
+        ],
+        [
+            "기대는 풍랑처럼 깨져버렸소.",
+"생선이 길을 잘못 들어왔소.",
+"내 입이 배신당한 기분이오.",
+"차라리 해변 모래를 씹는 게 나았을지도 모르겠소.",
+"맛이 뭔가 부족하다는 생각이 듭니다.",
+"미완성된 바다를 맛본 기분이오.",
+"혀에 닿는 순간 실망감이 스며들었소.",
+"맛보다는 풍경이 더 기억에 남겠소.",
+"아무런 감정도 남기지 않는 맛이었소.",
+"바닷물이 조금 덜 들어간 느낌이오.",
+        ],
+        [
+            "바다도 이런 날이 있는 법이지요.",
+"썩 나쁘지 않지만 그렇다고 대단하지도 않소.",
+"그냥 파도 위를 흘러가는 느낌이오.",
+"무난한 식사의 일환이었소.",
+"그냥저냥 괜찮았소.",
+"별 기대 없이 먹었더니 딱 그 정도였소.",
+"괜찮긴 했지만 한 번이면 족하오.",
+"맛있지도, 나쁘지도 않았소.",
+"내일 생각나진 않겠소.",
+"이게 평범함의 미학이겠소.",
+        ],
+        [
+            "신선한 파도가 스치듯 지나갔소.",
+"혀 끝에 남은 여운이 좋았소.",
+"파도에 몸을 맡기는 기분이었소.",
+"입안에 퍼지는 바다 내음이 꽤 좋았소.",
+"이 정도면 충분히 즐거운 식사였소.",
+"작지만 만족스러운 항해였소.",
+"이 정도 맛이면 다시 찾아오겠소.",
+"은은하게 기분 좋은 바다의 향이 남아있소.",
+"기대 이상으로 즐거웠소.",
+"생각보다 더 나은 맛이었소."
+        ],
+        [
+            "파도가 속삭이는 맛이었소.",
+"이것이야말로 신선함의 정수구려.",
+"입안에 작은 축제가 열렸소.",
+"기억에 남을 만한 맛이었소.",
+"내 혀가 환호성을 질렀소.",
+"미각의 항해가 순조롭게 흘러갔소.",
+"살며시 기분 좋아지는 맛이었소.",
+"내일도 생각날 맛이구려.",
+"생선이 나를 위로해주었소.",
+"바다와 화해한 기분이었소.",
+        ],
+        [
+            "잔잔한 바다 위를 걷는 기분이었소.",
+"혀 끝에 선율이 흐르는 듯했소.",
+"바다의 온기가 그대로 전해졌소.",
+"신선함이 내 몸을 감쌌소.",
+"한 점도 아쉽지 않았소.",
+"식사가 아닌 예술이었소.",
+"완벽에 가까운 맛이었소.",
+"혀와 마음이 모두 충만해졌소.",
+"파도와 함께 춤을 춘 기분이오.",
+"세상과 잠시 화해한 순간이었소.",
+        ],
+        [
+            "이 맛은 영혼을 울리는 파도였소.",
+"혀 끝에서 별이 빛났소.",
+"미각이 깨어난 순간이었소.",
+"내 안의 바다가 출렁였소.",
+"입 안에서 잔치가 벌어졌소.",
+"이 식사가 영원히 계속되길 바랐소.",
+"이것은 축복 그 자체였소.",
+"바다의 비밀을 맛본 기분이오.",
+"입안이 황홀경에 빠졌소.",
+"미각의 천국에 다녀왔소."
+        ],
+        [
+            "이것은 바다와 우주의 경계를 넘나드는 맛이었소.",
+"내 영혼이 바다와 춤을 추었소.",
+"이 한 입이 삶의 정점이었소.",
+"세상의 모든 파도가 나를 반겼소.",
+"이 식사가 영원히 계속되기를 기도했소.",
+"바다 너머의 별까지 맛보았소.",
+"입 안에서 우주가 펼쳐졌소.",
+"신이 허락한 맛이었소.",
+"세상에서 가장 완벽한 순간이었소.",
+"이 맛은 꿈조차 부끄럽게 만들었소."
+        ]
+    ];
+    
+    // satisfactionLevel이 resultTexts의 범위를 벗어나지 않도록 합니다.
+    const index = Math.min(Math.max(0, satisfactionLevel - 1), resultTexts.length - 1);
+    return resultTexts[index][Math.floor(Math.random() * resultTexts[index].length)];
+}
+
+// 획득 금액 계산 함수
+function calculateEarnedMoney(satisfactionLevel) {
+    let percentage;
+    if (satisfactionLevel <= 3) percentage = 0.5;
+    else if (satisfactionLevel <= 8) percentage = 1;
+    else if (satisfactionLevel === 9) percentage = 1.2;
+    else percentage = gameState.currentCustomer.isSpecial ? 2 : 1.5;
+
+    return Math.floor(gameState.currentCustomer.price * percentage);
+}
+
+// 평판 변화 계산 함수
+function calculateReputationChange(satisfactionLevel) {
+    if (gameState.currentCustomer.isSpecial) {
+        return specialCustomerReputationChanges[satisfactionLevel - 1];
+    } else {
+        const baseReputation = gameState.currentCustomer.group.reputationBase;
+        const increment = gameState.currentCustomer.group.reputationIncrement;
+        return baseReputation + (satisfactionLevel - 1) * increment;
+    }
+}
+
+// 칭호 업데이트 함수
+function updateTitle() {
+    const titles = [
+        { min: 0, title: '아르바이트생' },
+        { min: 300, title: '주방보조' },
+        { min: 1000, title: '주방장' },
+        { min: 3000, title: '미슐랭-쉐프' },
+        { min: 10000, title: '마스터-초밥왕' }
+    ];
+    
+    for (let i = titles.length - 1; i >= 0; i--) {
+        if (gameState.reputation >= titles[i].min) {
+            gameState.title = titles[i].title;
+            const titleElement = document.getElementById('current-title');
+            titleElement.textContent = gameState.title;
+            titleElement.className = gameState.title.replace(' ', '-').toLowerCase();
+            break;
+        }
+    }
+}
+
+// 게임 리셋 함수
+function resetGame() {
+    if (gameState.currentAnimation) {
+        clearInterval(gameState.currentAnimation);
+    }
+    const cookingElements = document.querySelectorAll('.cooking-element');
+    cookingElements.forEach(el => {
+        el.querySelector('.gauge').style.width = '0%';
+        el.querySelector('.player-taste').textContent = '';
+        el.querySelector('.customer-taste').textContent = '';
+        el.querySelector('.cooking-button').disabled = true;
+    });
+    
+    document.getElementById('receive-customer').disabled = false;
+    document.getElementById('start-cooking').disabled = true;
+    document.getElementById('result').style.display = 'none';
+    
+    gameState.currentCustomer = null;
+    gameState.cookingStep = 0;
+    gameState.results = [];
+    
+    updateButtonStyles();
+}
+
+// 플레이어 정보 업데이트 함수
+function updatePlayerInfo() {
+    document.getElementById('money').textContent = gameState.money;
+    document.getElementById('reputation').textContent = gameState.reputation;
+    updateTitle();
+    document.getElementById('current-title').textContent = gameState.title;
+    
+    let nextTitle = titles.find(t => t.min > gameState.reputation);
+    if (nextTitle) {
+        let currentTitle = titles[titles.indexOf(nextTitle) - 1];
+        let progress = (gameState.reputation - currentTitle.min) / (nextTitle.min - currentTitle.min) * 100;
+        document.getElementById('reputation-progress').style.width = `${progress}%`;
+        document.getElementById('next-title').textContent = `다음 자리: ${nextTitle.title} (${nextTitle.min - gameState.reputation}점 남음)`;
+    } else {
+        document.getElementById('reputation-progress').style.width = '100%';
+        document.getElementById('next-title').textContent = '최고 자리 달성!';
+    }
+}
+
+// 버튼 스타일 업데이트 함수
+function updateButtonStyles() {
+    const receiveCustomerBtn = document.getElementById('receive-customer');
+    const startCookingBtn = document.getElementById('start-cooking');
+    
+    receiveCustomerBtn.classList.toggle('disabled', receiveCustomerBtn.disabled);
+    startCookingBtn.classList.toggle('disabled', startCookingBtn.disabled);
+}
+
+// 게임 초기화 함수
+function initGame() {
+    updatePlayerInfo();
+    document.getElementById('receive-customer').addEventListener('click', receiveCustomer);
+    document.getElementById('start-cooking').addEventListener('click', startCooking);
+    document.querySelectorAll('.cooking-button').forEach(button => {
+        button.addEventListener('click', () => cookingStep(button.closest('.cooking-element')));
+    });
+    
+    const fishSelectionDropdown = document.getElementById('fish-selection');
+    fishTypes.forEach(fish => {
+        const option = document.createElement('option');
+        option.value = fish.name;
+        option.textContent = `${fish.name} - ${fish.price}원`;
+        fishSelectionDropdown.appendChild(option);
+    });
+    fishSelectionDropdown.addEventListener('change', (e) => selectFish(e.target.value));
+    
+    // 초기 상태 설정
+    document.getElementById('start-cooking').disabled = true;
+    document.getElementById('fish-selection').style.display = 'none';
+    document.getElementById('cooking-area').style.display = 'none';
+    document.getElementById('result').style.display = 'none';
+    
+    resetCookingArea();
+    updateButtonStyles();
+
+    // 사용자 클릭 후 BGM 재생하도록 수정
+document.body.addEventListener('click', () => {
+    const bgm = document.getElementById('bgm');
+    bgm.volume = 0.5; // 볼륨을 50%로 설정
+    bgm.play().catch(e => console.log("Auto-play prevented:", e));
+}, { once: true });
+
+}
+
+// 게임 시작
+initGame();
+
+    </script>
+</body>
+</html>
