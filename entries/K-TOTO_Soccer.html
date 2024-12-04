@@ -1,0 +1,653 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>숫돌이 김토토</title>
+    <style>
+        @import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css');
+        * { font-family: Pretendard, sans-serif; box-sizing: border-box; }
+        body { max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f0f0f0; }
+        .game-container { background-color: white; border-radius: 10px; padding: 20px; box-shadow: 0 0 10px rgba(0,0,0,0.1); }
+        .game-title { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+        .game-title img { width: 30px; height: 30px; }
+        .balance, .match-info { margin-bottom: 10px; }
+        .teams { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; }
+        .team { text-align: center; }
+        .team-icon { font-size: 24px; }
+        .score-board { display: flex; justify-content: center; align-items: center; margin-bottom: 20px; font-size: 24px; font-weight: bold; }
+        .score-board > * { margin: 0 10px; }
+        .betting-form { margin-bottom: 20px; }
+        .betting-form select, .betting-form input { width: 100%; padding: 10px; margin-bottom: 10px; }
+        .commentary { min-height: 100px; border: 1px solid #ccc; padding: 10px; margin-bottom: 20px; overflow-y: auto; max-height: 200px; background-color: #f9f9f9; line-height: 1.6; }
+        .commentary .highlight { font-weight: bold; margin: 10px 0; }
+        .progress-bar { width: 100%; height: 20px; background-color: #f0f0f0; margin-bottom: 20px; border-radius: 10px; overflow: hidden; }
+        .progress { width: 0%; height: 100%; background-color: #ffd700; transition: width 0.5s ease; }
+        .archive { border-top: 1px solid #ccc; padding-top: 20px; }
+        .archive > div { margin-bottom: 10px; padding: 10px; border-radius: 5px; }
+        .archive .success { background-color: #90EE90; }
+        .archive .failure { background-color: #FFCCCB; }
+        button { width: 100%; padding: 10px; background-color: #4CAF50; color: white; border: none; border-radius: 5px; cursor: pointer; }
+        button:disabled { background-color: #cccccc; }
+    </style>
+</head>
+<body>
+    <div class="game-container">
+        <div class="game-title">
+            <img src="https://em-content.zobj.net/thumbs/120/apple/325/soccer-ball_26bd.png" alt="Soccer Ball">
+            <h1>숫돌이 김토토</h1>
+        </div>
+        <div class="balance">잔액: ₩<span id="balance">100,000,000</span></div>
+        <div class="match-info" id="match-info">16강 1차전</div>
+        <div class="teams">
+            <div class="team">
+                <div class="team-icon" id="team-a-icon"></div>
+                <div id="team-a-name"></div>
+                <div>승률: <span id="team-a-odds"></span>%</div>
+            </div>
+            <div class="score-board">
+                <span id="team-a-score">0</span>
+                <span>vs</span>
+                <span id="team-b-score">0</span>
+            </div>
+            <div class="team">
+                <div class="team-icon" id="team-b-icon"></div>
+                <div id="team-b-name"></div>
+                <div>승률: <span id="team-b-odds"></span>%</div>
+            </div>
+        </div>
+        <div class="betting-form">
+            <select id="bet-winner">
+                <option value="">승부예측! 승자는?</option>
+            </select>
+            <input type="number" id="bet-amount" placeholder="배팅 금액">
+            <div>예상 수익: ₩<span id="expected-profit">0</span></div>
+            <button id="start-match" disabled>승부를 예측하고 금액을 배팅하세요!</button>
+        </div>
+        <div class="commentary" id="commentary"></div>
+        <div class="progress-bar">
+            <div class="progress" id="progress"></div>
+        </div>
+        <div class="archive" id="archive"></div>
+    </div>
+    <audio id="background-music" loop>
+        <source src="https://www.televisiontunes.com/uploads/audio/UEFA%20Champions%20League%20-%20Full%20Version.mp3" type="audio/mpeg">
+    </audio>
+    <script>
+         let recentCommentaries = [];  // 여기에 recentCommentaries와 getRandomCommentary 추가
+
+function getRandomCommentary(type) {
+    const texts = commentaryTexts[type];
+    
+    // 최근 3개의 코멘터리를 제외한 나머지 텍스트들만 사용 가능
+    let availableTexts = texts.filter(text => !recentCommentaries.includes(text));
+
+    // 만약 모든 텍스트가 최근에 사용된 경우, 새로 사용할 수 있게 함
+    if (availableTexts.length === 0) {
+        availableTexts = texts;
+    }
+
+    const selectedText = availableTexts[Math.floor(Math.random() * availableTexts.length)];
+    
+    // recentCommentaries 배열 관리 (최대 3개만 유지)
+    recentCommentaries.push(selectedText);
+    if (recentCommentaries.length > 3) {
+        recentCommentaries.shift(); // 배열의 첫 번째 요소 제거
+    }
+
+    return selectedText;
+}
+        const teams = [
+            {name: 'The animals', icon: '🐯'},
+            {name: 'The ballons', icon: '🎈'},
+            {name: 'The books', icon: '📚'},
+            {name: 'The burgers', icon: '🍔'},
+            {name: 'The cars', icon: '🚗'},
+            {name: 'The cities', icon: '🏙️'},
+            {name: 'The desserts', icon: '🧁'},
+            {name: 'The drinks', icon: '🧃'},
+            {name: 'The flowers', icon: '🌸'},
+            {name: 'The forests', icon: '🌲'},
+            {name: 'The Games', icon: '🕹️'},
+            {name: 'The Mountains', icon: '⛰️'},
+            {name: 'The Pizzas', icon: '🍕'},
+            {name: 'The planes', icon: '✈️'},
+            {name: 'The singers', icon: '🧑‍🎤'},
+            {name: 'The smiles', icon: '😏'}
+        ];
+
+        let balance = 100000000;
+        let currentMatch = {};
+        let matchHistory = [];
+        let commentary = [];
+        let currentRound = 16;
+        let currentMatchNumber = 1;
+        let isMatchEnded = false;
+        let matchups = [];
+        let usedCommentaries = new Set();
+
+        const commentaryTexts = {
+            kickoff: [
+        "🎙️: Team A와 Team B의 경기가 시작됩니다! 멋진 경기가 기대됩니다!",
+        "🎙️: 양 팀이 그라운드 위에 올랐습니다. Team A와 Team B의 경기가 시작되었습니다!",
+        "🎙️: Team A와 Team B, 모두가 주목하는 경기가 이제 시작됩니다!",
+        "🎙️: Team A와 Team B의 팽팽한 대결이 이제 막 시작됩니다!",
+        "🎙️: 긴장감 넘치는 순간! Team A와 Team B가 경기를 시작합니다!"
+    ],
+            goalA: [
+                "Team A의 공격수가 마치 한 편의 예술작품처럼 골대를 겨냥해 아름다운 슈팅을 날립니다!",
+                "Team A가 수비진을 유린하며, 그 어느 때보다 통쾌한 득점을 기록합니다!",
+                "Team A의 선수, 상대 수비를 우아하게 제치고 환상적인 골을 넣습니다!",
+                "Team A가 강력한 크로스를 날리며, 공은 그대로 골망을 흔듭니다!",
+                "Team A의 공격이 폭풍처럼 몰아치며, 정확한 슈팅으로 추가 점수를 획득합니다!",
+                "Team A가 기적 같은 드리블로 수비를 뚫고, 마침내 득점을 완성합니다!",
+                "Team A의 환상적인 패스워크가 이어지며, 골로 연결되는 찬스가 만들어집니다!",
+                "Team A의 선수, 역동적인 움직임으로 빈틈을 노려 득점을 가져옵니다!",
+                "Team A가 강렬한 세트피스를 통해 상대 골망을 가볍게 찌릅니다!",
+                "Team A의 슈팅이 골대에 박히며, 관중들이 환호성을 지릅니다!",
+                "Team A가 긴박한 상황에서 기회를 잡아, 찰나의 순간에 골을 넣습니다!",
+                "Team A의 공격수가 기민하게 공을 받아내며, 멋진 골로 변환합니다!",
+                "Team A가 지혜롭게 상대의 수비를 교란시키며 득점에 성공합니다!",
+                "Team A의 선수가 기적적으로 공을 간직하고, 마침내 골망을 흔듭니다!",
+                "Team A가 전환의 순간을 놓치지 않고, 통쾌한 득점을 터뜨립니다!",
+                "Team A의 기막힌 협력 플레이가 성과를 이루며, 멋진 득점으로 이어집니다!",
+                "Team A가 조용히 기회를 엿보다, 짜릿한 슈팅으로 득점을 가져갑니다!",
+                "Team A의 드리블이 수비수를 허무하게 만들고, 이어지는 득점으로 이어집니다!",
+                "Team A의 선수, 적재적소에 위치해 강력한 헤딩으로 골을 성공시킵니다!",
+                "Team A가 환상적인 개인기로 수비를 제치고, 경기를 바꿉니다!",
+                "Team A가 강렬한 중거리 슈팅으로 경기장을 가득 메운 환호를 이끌어냅니다!",
+                "Team A가 기세를 올리며, 결정적인 순간에 득점을 이끌어냅니다!",
+                "Team A의 플레이어가 신중하게 상황을 판단하고, 완벽한 골을 넣습니다!",
+                "Team A가 흐름을 타고 빠르게 공격하며, 멋진 득점을 이룹니다!",
+                "Team A의 공격수가 골대를 정조준하며 강력한 슈팅을 날립니다!",
+                "Team A가 간결한 패스와 완벽한 타이밍으로 득점에 성공합니다!",
+                "Team A가 끝내주는 트릭 플레이로 득점을 가져옵니다!",
+                "Team A가 선수들의 호흡을 맞추며, 경이로운 골을 만들어냅니다!",
+                "Team A의 선수, 상대 수비를 간파하고 침착하게 득점합니다!",
+                "Team A가 드라마틱한 순간에 기적 같은 득점을 기록합니다!"
+            ],
+            goalB: [
+                "Team B가 마법 같은 패스를 이어가며, 환상적인 득점으로 골문을 흔듭니다!",
+                "Team B의 공격수가 절묘한 위치에서 득점을 기록하며 경기장에 열기를 더합니다!",
+                "Team B가 팀워크의 힘으로 수비를 뚫고, 짜릿한 골을 성공시킵니다!",
+                "Team B의 선수, 수비진을 우아하게 제치고 마침내 득점에 성공합니다!",
+                "Team B가 강력한 크로스를 날리며, 공은 그대로 골망을 갈라놓습니다!",
+                "Team B의 공격이 순식간에 펼쳐지며, 관중들을 놀라게 할 만한 득점이 나옵니다!",
+                "Team B의 선수가 기회를 놓치지 않고 강력한 슈팅으로 골을 넣습니다!",
+                "Team B가 상대의 수비를 무너뜨리며 멋진 협력으로 득점에 성공합니다!",
+                "Team B의 기습적인 공격이 적재적소에 이루어져, 득점으로 이어집니다!",
+                "Team B가 빠른 패스와 기민한 움직임으로 골대를 정조준합니다!",
+                "Team B의 공격수가 기적적인 순간에 골을 성공시켜 경기의 흐름을 바꿉니다!",
+                "Team B가 절묘한 드리블로 수비수를 따돌리며 득점에 성공합니다!",
+                "Team B의 선수, 완벽한 타이밍으로 공을 받아내고 멋진 골을 넣습니다!",
+                "Team B가 강력한 중거리 슈팅으로 관중의 환호를 이끌어냅니다!",
+                "Team B가 세트피스를 이용해 조용히 득점의 기회를 잡습니다!",
+                "Team B가 경기를 지배하며 수비를 뚫고 굳건한 득점을 올립니다!",
+                "Team B의 공격수가 순식간에 수비를 뚫고, 완벽한 골을 기록합니다!",
+                "Team B의 선수, 날카로운 슈팅으로 경기를 흔드는 순간을 만들어냅니다!",
+                "Team B가 교체 선수의 활약으로 중요한 순간에 득점을 성공시킵니다!",
+                "Team B가 드라마틱한 역습으로 골문을 열며 득점을 가져갑니다!",
+                "Team B의 선수, 집중력을 잃지 않고 마침내 득점을 올립니다!",
+                "Team B가 끊임없이 공격을 시도하며 골대를 위협합니다!",
+                "Team B가 기적 같은 연계 플레이로 경기장을 열광시키며 득점합니다!",
+                "Team B의 공격이 한 번의 찬스도 놓치지 않고, 귀중한 골을 만들어냅니다!",
+                "Team B가 전술적인 움직임으로 수비를 뚫고 득점합니다!",
+                "Team B의 선수, 강렬한 헤딩으로 골대를 정통으로 가격합니다!",
+                "Team B가 팀의 응집력을 바탕으로 환상적인 골을 올립니다!",
+                "Team B가 예리한 슈팅으로 관중의 가슴을 뛰게 합니다!",
+                "Team B의 드리블이 마치 마술처럼 수비를 풀어내며 득점에 성공합니다!",
+                "Team B가 강력한 피지컬로 상대의 방어를 제압하며 득점합니다!"
+            ],
+            noGoal: [
+                "Team A와 Team B가 팽팽한 접전 속에서 대치하며, 경기장에는 긴장감이 감돕니다!",
+                "양 팀 선수들이 몸싸움을 벌이며, 뜨거운 열기 속에서 대결을 이어갑니다!",
+                "Team A와 Team B가 서로의 공격을 방어하며, 불꽃 튀는 공방전을 펼칩니다!",
+                "팀 간의 심리전이 극대화되며, 경기장은 점점 더 뜨거워지고 있습니다!",
+                "Team A의 수비가 Team B의 기습적인 공격을 저지하며 치열한 대결이 이어집니다!",
+                "Team B가 Team A의 빈틈을 찾기 위해 집요하게 압박을 가합니다!",
+                "양 팀의 선수들이 저마다의 전술을 구사하며 격렬한 대치를 이어갑니다!",
+                "Team A의 수비가 Team B의 공격을 저지하기 위해 온 힘을 다하고 있습니다!",
+                "Team B가 끊임없는 패스로 Team A의 수비를 흔들어 놓습니다!",
+                "경기장은 양 팀의 선수들이 공을 차지하기 위해 몸을 던지는 열전으로 가득합니다!",
+                "Team A의 공격수가 미세한 공간을 노리며, 기회를 엿보고 있습니다!",
+                "Team B가 Team A의 수비를 휘젓고 다니며 위협적인 장면을 만들어냅니다!",
+                "양 팀의 선수들이 주어진 기회를 놓치지 않기 위해 긴장감을 높이고 있습니다!",
+                "Team A가 강력한 압박을 가하며 Team B의 공격을 저지합니다!",
+                "Team B가 상대의 약점을 파악하려 애쓰며 경기를 이어갑니다!",
+                "양 팀의 선수들이 서로의 움직임을 예의주시하며 신중하게 접근합니다!",
+                "Team A의 공격이 Team B의 수비를 겨냥하며 힘차게 다가옵니다!",
+                "Team B가 저돌적인 공격으로 Team A의 수비를 괴롭힙니다!",
+                "경기장은 팽팽한 긴장감으로 가득 차 있으며, 어느 팀이 먼저 기회를 잡을지 모릅니다!",
+                "Team A와 Team B의 선수들이 서로를 탐색하며 순간의 기회를 노리고 있습니다!"
+            ],
+            extraTime: [
+                "🎙️: 90분 경기가 끝났지만 승부를 가리지 못했습니다. 연장전으로 돌입합니다!",
+                "🎙️: Team A와 Team B, 연장전에서 승부를 가리게 됩니다!",
+                "🎙️: 팽팽한 접전 끝에 연장전으로 들어갑니다. 누가 승리의 여신을 잡을까요?",
+                "🎙️: 정규 시간 동안 승부를 가리지 못했습니다. 연장전에서 운명이 갈립니다!",
+                "🎙️: 양 팀 모두 지치지 않고 연장전에 돌입합니다. 누구의 체력이 더 버틸까요?"
+            ],
+            penaltyShootout: [
+                "🎙️: 연장전에서도 승부를 가리지 못했습니다. 승부차기로 들어갑니다!",
+                "🎙️: 운명의 승부차기! Team A와 Team B, 누구의 손을 들어줄까요?",
+                "🎙️: 120분의 혈투 끝에 승부차기로 최종 승자를 가립니다!",
+                "🎙️: 긴장감 넘치는 승부차기의 순간입니다. 선수들의 간담이 서늘해집니다!",
+                "🎙️: 골키퍼와 키커의 1:1 대결, 승부차기가 시작됩니다!"
+            ],
+            winA: [
+                "🎙️: Team A가 시원한 골로 경기를 마무리하며 승리를 쟁취합니다!",
+                "🎙️: Team A의 환상적인 플레이가 빛을 발하며, 결국 승리의 순간을 맞이합니다!",
+                "🎙️: Team A가 지치지 않고 끊임없이 공격하며 경기의 승자가 됩니다!",
+                "🎙️: Team A가 모든 것을 쏟아부으며, 강렬한 승리를 가져갑니다!",
+                "🎙️: Team A가 마지막 순간까지 집중력을 잃지 않으며, 쾌승을 거둡니다!"
+            ],
+            winB: [
+                "🎙️: Team B가 압도적인 경기력으로 Team A를 무너뜨리고, 승리를 쟁취합니다!",
+                "🎙️: Team B의 플레이가 팀의 사기를 끌어올리며, 경기를 마무리짓습니다!",
+                "🎙️: Team B가 마지막 순간까지 최선을 다하며, 기적 같은 승리를 거두었습니다!",
+                "🎙️: Team B의 선수들이 환상적인 플레이로 승리의 기쁨을 만끽합니다!",
+                "🎙️: Team B가 끈질긴 노력으로 경기를 지배하며, 당당한 승리를 이룹니다!"
+            ]
+        };
+
+        function shuffleArray(array) {
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+
+        function generateMatchups() {
+            shuffleArray(teams);
+            const matchups = [];
+            for (let i = 0; i < teams.length; i += 2) {
+                matchups.push({
+                    teamA: teams[i],
+                    teamB: teams[i + 1],
+                    oddsA: Math.random() * 0.5 + 0.25,
+                    oddsB: 0
+                });
+                matchups[matchups.length - 1].oddsB = 1 - matchups[matchups.length - 1].oddsA;
+            }
+            return matchups;
+        }
+
+        function updateMatchDisplay() {
+            document.getElementById('team-a-icon').textContent = currentMatch.teamA.icon;
+            document.getElementById('team-a-name').textContent = currentMatch.teamA.name;
+            document.getElementById('team-a-odds').textContent = (currentMatch.oddsA * 100).toFixed(1);
+            document.getElementById('team-b-icon').textContent = currentMatch.teamB.icon;
+            document.getElementById('team-b-name').textContent = currentMatch.teamB.name;
+            document.getElementById('team-b-odds').textContent = (currentMatch.oddsB * 100).toFixed(1);
+
+            const betWinner = document.getElementById('bet-winner');
+            betWinner.innerHTML = '<option value="">승부예측! 승자는?</option>';
+            betWinner.innerHTML += `<option value="A">${currentMatch.teamA.icon}${currentMatch.teamA.name} x${(1 / currentMatch.oddsA).toFixed(3)}</option>`;
+            betWinner.innerHTML += `<option value="B">${currentMatch.teamB.icon}${currentMatch.teamB.name} x${(1 / currentMatch.oddsB).toFixed(3)}</option>`;
+
+            document.getElementById('bet-amount').value = '';
+            document.getElementById('expected-profit').textContent = '0';
+            document.getElementById('start-match').disabled = true;
+            document.getElementById('start-match').textContent = '승부를 예측하고 금액을 배팅하세요!';
+            
+            document.getElementById('team-a-score').textContent = '0';
+            document.getElementById('team-b-score').textContent = '0';
+            
+            isMatchEnded = false;
+            usedCommentaries.clear();
+        }
+
+        function updateBalance() {
+            document.getElementById('balance').textContent = balance.toLocaleString();
+        }
+
+        function calculateExpectedProfit() {
+            if (isMatchEnded) return;
+            
+            const betWinner = document.getElementById('bet-winner').value;
+            const betAmount = parseInt(document.getElementById('bet-amount').value) || 0;
+            let multiplier = 0;
+
+            if (betWinner === 'A') {
+                multiplier = 1 / currentMatch.oddsA;
+            } else if (betWinner === 'B') {
+                multiplier = 1 / currentMatch.oddsB;
+            }
+
+            const expectedProfit = Math.floor(betAmount * multiplier);
+            document.getElementById('expected-profit').textContent = expectedProfit.toLocaleString();
+
+            const startMatchButton = document.getElementById('start-match');
+            if (betWinner && betAmount > 0 && betAmount <= balance) {
+                startMatchButton.disabled = false;
+                startMatchButton.textContent = '경기 시작!';
+            } else {
+                startMatchButton.disabled = true;
+                startMatchButton.textContent = '승부를 예측하고 금액을 배팅하세요!';
+            }
+        }
+
+        function getRandomCommentary(type) {
+            const texts = commentaryTexts[type];
+            let availableTexts = texts.filter(text => !usedCommentaries.has(text));
+            
+            if (availableTexts.length === 0) {
+                usedCommentaries.clear();
+                availableTexts = texts;
+            }
+            
+            const selectedText = availableTexts[Math.floor(Math.random() * availableTexts.length)];
+            usedCommentaries.add(selectedText);
+            return selectedText;
+        }
+
+        function simulateMatch() {
+    const totalTime = 60; 
+    const updateInterval = 2000; 
+    const totalUpdates = totalTime / 2;
+    
+    let currentUpdate = 0;
+    let scoreA = 0;
+    let scoreB = 0;
+
+    const commentaryBox = document.getElementById('commentary');
+    const progressBar = document.getElementById('progress');
+    
+    // 경기 시작 킥오프 코멘트 출력
+    commentaryBox.innerHTML += `<p class="highlight">${getRandomCommentary('kickoff')
+        .replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)
+        .replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name)}</p><br>`;
+    
+    commentaryBox.scrollTop = commentaryBox.scrollHeight;
+    
+    const matchInterval = setInterval(() => {
+        currentUpdate++;
+        
+        const eventProbability = Math.random();
+        if (eventProbability < 0.05) { 
+            if (Math.random() < currentMatch.oddsA) {
+                scoreA++;
+                commentaryBox.innerHTML += `<strong>${getRandomCommentary('goalA').replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)}</strong><br><br>`;
+            } else {
+                scoreB++;
+                commentaryBox.innerHTML += `<strong>${getRandomCommentary('goalB').replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name)}</strong><br><br>`;
+            }
+            document.getElementById('team-a-score').textContent = scoreA;
+            document.getElementById('team-b-score').textContent = scoreB;
+        } else {
+            commentaryBox.innerHTML += getRandomCommentary('noGoal')
+                .replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)
+                .replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name) + '<br><br>';
+        }
+
+        commentaryBox.scrollTop = commentaryBox.scrollHeight;
+        
+        const progress = (currentUpdate / totalUpdates) * 100;
+        progressBar.style.width = progress + '%';
+
+        if (currentUpdate >= totalUpdates) {
+            clearInterval(matchInterval);
+            if (scoreA === scoreB) {
+                simulateExtraTime(scoreA, scoreB);
+            } else {
+                endMatch(scoreA, scoreB);
+            }
+        }
+    }, updateInterval);
+}
+
+function simulateExtraTime(scoreA, scoreB) {
+    const commentaryBox = document.getElementById('commentary');
+    
+    // 연장전 시작 코멘트 출력
+    commentaryBox.innerHTML += `<p class="highlight">${getRandomCommentary('extraTime')
+        .replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)
+        .replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name)}</p><br>`;
+    
+    commentaryBox.scrollTop = commentaryBox.scrollHeight;
+    
+    const totalTime = 20;
+    const updateInterval = 1500;
+    const totalUpdates = totalTime / 2;
+    
+    let currentUpdate = 0;
+
+    setTimeout(() => {
+        const extraTimeInterval = setInterval(() => {
+            currentUpdate++;
+            
+            const eventProbability = Math.random();
+            if (eventProbability < 0.07) { 
+                if (Math.random() < currentMatch.oddsA) {
+                    scoreA++;
+                    commentaryBox.innerHTML += `<strong>${getRandomCommentary('goalA').replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)}</strong><br><br>`;
+                } else {
+                    scoreB++;
+                    commentaryBox.innerHTML += `<strong>${getRandomCommentary('goalB').replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name)}</strong><br><br>`;
+                }
+                document.getElementById('team-a-score').textContent = scoreA;
+                document.getElementById('team-b-score').textContent = scoreB;
+
+                // 득점해도 경기를 종료하지 않고 계속 진행
+            }
+
+            commentaryBox.innerHTML += getRandomCommentary('noGoal')
+                .replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)
+                .replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name) + '<br><br>';
+            commentaryBox.scrollTop = commentaryBox.scrollHeight;
+
+            // 모든 연장전 시간이 끝나야만 경기를 종료
+            if (currentUpdate >= totalUpdates) {
+                clearInterval(extraTimeInterval);
+                if (scoreA === scoreB) {
+                    simulatePenaltyShootout(scoreA, scoreB); // 승부차기 진행
+                } else {
+                    endMatch(scoreA, scoreB, false); // 연장전 종료
+                }
+            }
+        }, updateInterval);
+    }, 2000); // 연장전 시작 후 2초 대기
+}
+
+function simulatePenaltyShootout(scoreA, scoreB) {
+    const commentaryBox = document.getElementById('commentary');
+    
+    // 승부차기 시작 텍스트 출력
+    commentaryBox.innerHTML += `<p class="highlight">${getRandomCommentary('penaltyShootout')
+        .replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)
+        .replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name)}</p><br>`;
+    
+    commentaryBox.scrollTop = commentaryBox.scrollHeight;
+
+    // 2초 대기 후 승부차기 코멘터리 출력
+    setTimeout(() => {
+        let penaltyScoreA = 0;
+        let penaltyScoreB = 0;
+        let round = 0;
+
+        const penaltyInterval = setInterval(() => {
+            round++;
+            if (Math.random() < 0.75) penaltyScoreA++; // 75% 확률로 Team A 성공
+            if (Math.random() < 0.75) penaltyScoreB++; // 75% 확률로 Team B 성공
+
+            commentaryBox.innerHTML += `${round}라운드 - ${currentMatch.teamA.icon}${currentMatch.teamA.name} ${penaltyScoreA}:${penaltyScoreB} ${currentMatch.teamB.icon}${currentMatch.teamB.name}<br><br>`;
+            commentaryBox.scrollTop = commentaryBox.scrollHeight;
+
+            // 5라운드 이상 시 득점 차이가 나면 승부차기 종료
+            if (round >= 5 && Math.abs(penaltyScoreA - penaltyScoreB) > 0) {
+                clearInterval(penaltyInterval);
+                endMatch(scoreA, scoreB, true, penaltyScoreA, penaltyScoreB);
+            }
+        }, 2000); // 승부차기 간격 2초
+    }, 2000); // 페널티킥 시작 텍스트 후 2초 대기
+}
+
+function endMatch(scoreA, scoreB, isPenalty = false, penaltyScoreA = 0, penaltyScoreB = 0) {
+    isMatchEnded = true;
+    const betWinner = document.getElementById('bet-winner').value;
+    const betAmount = parseInt(document.getElementById('bet-amount').value);
+
+    let result = '';
+    // 승부차기일 경우 승부차기 점수로 승패 결정
+    if (isPenalty) {
+        if (penaltyScoreA > penaltyScoreB) {
+            result = 'A';  // Team A가 승리
+        } else {
+            result = 'B';  // Team B가 승리
+        }
+    } else { // 일반 경기나 연장전일 경우 득점으로 승패 결정
+        if (scoreA > scoreB) {
+            result = 'A';
+        } else {
+            result = 'B';
+        }
+    }
+
+    const commentaryBox = document.getElementById('commentary');
+    let commentary = '';
+
+    // 승리한 팀에 따라 코멘트 다르게 출력
+    if (result === 'A') {
+        commentary = getRandomCommentary('winA');
+    } else {
+        commentary = getRandomCommentary('winB');
+    }
+
+    commentaryBox.innerHTML += `<strong>${commentary
+        .replace('Team A', currentMatch.teamA.icon + currentMatch.teamA.name)
+        .replace('Team B', currentMatch.teamB.icon + currentMatch.teamB.name)}</strong><br><br>`;
+
+    let profit = 0;
+    if (result === betWinner) {
+        commentaryBox.style.backgroundColor = '#90EE90';
+        commentaryBox.innerHTML += '<strong>예측 성공!</strong><br><br>';
+        profit = Math.floor(betAmount * (1 / (result === 'A' ? currentMatch.oddsA : currentMatch.oddsB)));
+        balance += profit;
+        updateBalance();
+    } else {
+        commentaryBox.style.backgroundColor = '#FFCCCB';
+        commentaryBox.innerHTML += '<strong>예측 실패!</strong><br><br>';
+        profit = -betAmount;
+    }
+
+    const archiveEntry = document.createElement('div');
+    archiveEntry.className = result === betWinner ? 'success' : 'failure';
+    let scoreDisplay = `${scoreA} : ${scoreB}`;
+    if (isPenalty) {
+        scoreDisplay = `${penaltyScoreA} : ${penaltyScoreB}`; // 승부차기일 경우 승부차기 점수 표시
+    }
+    archiveEntry.innerHTML = `
+        <strong>${currentRound === 4 ? '준결승' : (currentRound === 2 ? '결승' : `${currentRound}강`)} ${currentRound === 2 ? '' : currentMatchNumber + '차전'}</strong><br>
+        <strong>${currentMatch.teamA.icon}${currentMatch.teamA.name} ${scoreDisplay} ${currentMatch.teamB.icon}${currentMatch.teamB.name} ${isPenalty ? '(승부차기)' : ''}</strong><br>
+        예측: ${betWinner === 'A' ? currentMatch.teamA.name : currentMatch.teamB.name}<br>
+        배팅: ₩${betAmount.toLocaleString()}<br>
+        결과: ${result === betWinner ? '성공' : '실패'}<br>
+        수익: ₩${profit.toLocaleString()}<br>
+        잔액: ₩${balance.toLocaleString()}
+    `;
+    document.getElementById('archive').prepend(archiveEntry);
+
+    document.getElementById('bet-winner').disabled = true;
+    document.getElementById('bet-amount').disabled = true;
+    document.getElementById('start-match').disabled = false;
+    document.getElementById('start-match').textContent = '다음 경기';
+
+    if (balance <= 0) {
+        alert('전재산 탕진! 게임 오버!');
+        document.getElementById('start-match').disabled = true;
+    }
+
+    currentMatch.winner = result === 'A' ? currentMatch.teamA : currentMatch.teamB;
+}
+
+        function startNextRound() {
+            if (currentRound === 2) {
+                alert(`결승전 종료! 최종 잔액: ₩${balance.toLocaleString()}`);
+                document.getElementById('start-match').disabled = true;
+                return;
+            }
+
+            currentRound /= 2;
+            currentMatchNumber = 1;
+            matchups = [];
+
+            for (let i = 0; i < matchHistory.length; i += 2) {
+                const winner1 = matchHistory[i].winner;
+                const winner2 = matchHistory[i + 1].winner;
+                const newMatch = {
+                    teamA: winner1,
+                    teamB: winner2,
+                    oddsA: Math.random() * 0.5 + 0.25,
+                    oddsB: 0
+                };
+                newMatch.oddsB = 1 - newMatch.oddsA;
+                matchups.push(newMatch);
+            }
+
+            matchHistory = [];
+            currentMatch = matchups[0];
+            updateMatchDisplay();
+            document.getElementById('commentary').innerHTML = '';
+            document.getElementById('commentary').style.backgroundColor = '';
+            document.getElementById('progress').style.width = '0%';
+            document.getElementById('match-info').textContent = `${currentRound === 4 ? '준결승' : (currentRound === 2 ? '결승' : `${currentRound}강`)} ${currentRound === 2 ? '' : currentMatchNumber + '차전'}`;
+            document.getElementById('bet-winner').disabled = false;
+            document.getElementById('bet-amount').disabled = false;
+        }
+
+        // 초기화
+        matchups = generateMatchups();
+        currentMatch = matchups[0];
+        updateMatchDisplay();
+        updateBalance();
+
+        // 이벤트 리스너
+        document.getElementById('bet-winner').addEventListener('change', calculateExpectedProfit);
+        document.getElementById('bet-amount').addEventListener('input', calculateExpectedProfit);
+        document.getElementById('start-match').addEventListener('click', () => {
+            if (isMatchEnded) {
+                matchHistory.push(currentMatch);
+                currentMatchNumber++;
+                if (currentMatchNumber > currentRound / 2) {
+                    startNextRound();
+                } else {
+                    currentMatch = matchups[currentMatchNumber - 1];
+                    updateMatchDisplay();
+                    document.getElementById('commentary').innerHTML = '';
+                    document.getElementById('commentary').style.backgroundColor = '';
+                    document.getElementById('progress').style.width = '0%';
+                    document.getElementById('match-info').textContent = `${currentRound === 4 ? '준결승' : (currentRound === 2 ? '결승' : `${currentRound}강`)} ${currentRound === 2 ? '' : currentMatchNumber + '차전'}`;
+                    document.getElementById('bet-winner').disabled = false;
+                    document.getElementById('bet-amount').disabled = false;
+                }
+            } else {
+                const betAmount = parseInt(document.getElementById('bet-amount').value);
+                balance -= betAmount;
+                updateBalance();
+                document.getElementById('bet-winner').disabled = true;
+                document.getElementById('bet-amount').disabled = true;
+                document.getElementById('start-match').disabled = true;
+                simulateMatch();
+            }
+        });
+
+        // 배경 음악 자동 재생 처리
+        const backgroundMusic = document.getElementById('background-music');
+        backgroundMusic.volume = 0.3; 
+        document.addEventListener('DOMContentLoaded', () => {
+            backgroundMusic.play().catch(error => {
+                console.log("Audio playback failed:", error);
+            });
+        });
+    </script>
+    <script>
+        // 페이지 클릭 시 배경음악 재생 처리
+        document.body.addEventListener('click', () => {
+            const backgroundMusic = document.getElementById('background-music');
+            backgroundMusic.play().catch(error => {
+                console.log("Audio playback failed:", error);
+            });
+        });
+    </script>
+</body>
+</html>
