@@ -1,0 +1,2796 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kill or Buy</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard/dist/web/static/pretendard.css">
+    <link rel="stylesheet" href="styles.css">
+    <style>
+        /* 기본 스타일 리셋 및 폰트 설정 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Pretendard', sans-serif;
+}
+
+/* 다크모드 기본 스타일 */
+.dark-mode {
+    --bg-color: #121212;
+    --text-color: #ffffff;
+    --card-bg: #1e1e1e;
+    --popup-bg: #242424;
+    --button-bg: #2c2c2c;
+    --button-hover: #3c3c3c;
+    --border-color: #333333;
+}
+
+.prologue-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.8);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+.prologue-content {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 20px;
+}
+
+.prologue-image {
+    max-width: 90%;
+    max-height: 80vh;
+}
+
+#prologue-button {
+    padding: 10px 30px;
+    font-size: 1.2em;
+    background-color: var(--button-bg);
+    color: var(--text-color);
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+}
+
+#prologue-button:hover {
+    background-color: var(--button-hover);
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    margin: 0;
+    padding: 0;
+    display: flex; /* Flexbox 사용 */
+    justify-content: center; /* 수평 중앙 정렬 */
+    align-items: center; /* 수직 중앙 정렬 */
+    min-height: 100vh; /* 화면 전체 높이 사용 */
+    width: 100%; /* 전체 너비 사용 */
+    overflow: hidden;
+    overflow-y: auto;
+}
+
+
+/* 스크린 기본 스타일 */
+.screen {
+    display: flex;
+    justify-content: center; /* 내부 콘텐츠 수평 정렬 */
+    align-items: center; /* 내부 콘텐츠 수직 정렬 */
+    width: 100%; /* 전체 너비 */
+    max-width: 960px; /* 최대 너비 제한 */
+    margin: 0 auto; /* 수평 중앙 정렬 */
+    height: auto;
+    box-sizing: border-box; /* 패딩 포함 */
+}
+
+#main-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start; /* 위쪽부터 시작 */
+    align-items: center;
+    height: 100vh; /* 전체 화면 높이 */
+    width: 100%; /* 전체 화면 너비 */
+    overflow-y: scroll; /* 세로 스크롤 활성화 */
+    background-color: var(--bg-color); /* 배경색 유지 */
+    -ms-overflow-style: none; /* IE 및 Edge */
+    scrollbar-width: none; /* Firefox */
+}
+
+#main-container::-webkit-scrollbar {
+    display: none; /* Chrome, Safari, Opera */
+}
+
+
+/* 인트로 화면 스타일 */
+#intro {
+    background-color: var(--bg-color);
+    z-index: 1000;
+    cursor: pointer;
+}
+
+.intro-content {
+    text-align: center;
+}
+
+.intro-text {
+    font-size: 1.5em;
+    text-align: center;
+    opacity: 0;
+    animation: fadeIn 1s forwards;
+}
+
+.intro-subtext {
+    font-size: 0.9em;
+    color: rgba(255, 255, 255, 0.6);
+    margin-top: 20px;
+    opacity: 0;
+    animation: fadeIn 1s forwards 0.5s;
+}
+
+/* 게임 컨테이너 스타일 */
+#game-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* 내부 요소 수직 중앙 정렬 */
+    align-items: center; /* 내부 요소 수평 중앙 정렬 */
+    width: 100%; /* 부모의 전체 너비 사용 */
+    max-width: 960px; /* 최대 너비 제한 */
+    height: auto;
+    margin: 0 auto; /* 중앙 정렬 */
+    padding: 20px;
+    box-sizing: border-box;
+    padding-bottom: 20%;
+    padding-top: 20%;
+}
+
+/* 상태바 스타일 */
+.status-bar {
+    background-color: var(--card-bg);
+    padding: 15px 10px;
+    text-align: center;
+    width: 100%;
+    position: sticky;
+    top: 0; /* 상태바가 화면 위에 고정 */
+    z-index: 10; /* 다른 요소 위에 표시 */
+}
+
+.probabilities {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+    margin: 10px 0;
+}
+
+.resources {
+    display: flex;
+    justify-content: center;
+    gap: 20px;
+}
+
+/* 타겟 컨테이너 스타일 */
+.targets-container {
+    flex: 1; /* 남은 공간을 차지 */
+    width: 100%;
+    display: flex;
+    justify-content: center;
+    padding: 10px;
+}
+
+
+
+/* 타겟 그리드 스타일 */
+.targets-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 300px);
+    gap: 12px;
+    justify-content: center;
+    align-content: flex-start;
+    width: 100%;
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+
+/* 타겟 카드 스타일 */
+.target-card {
+    background-color: var(--popup-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    margin: 0; /* 추가 여백 제거 */
+    padding: 12px;
+    transition: transform 0.2s;
+    height: auto;        /* 변경 */
+    min-height: 120px;   /* 추가 */
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.target-info {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.target-card:hover {
+    transform: translateY(-5px);
+}
+
+.target-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: auto; /* 수정 */
+}
+
+.target-quote {
+    font-family: 'Pretendard', sans-serif; /* Pretendard 폰트 적용 */
+    font-style: italic; /* 기울임체 */
+    font-size: 0.9em; /* 기본 폰트 크기 */
+    color: #ccc; /* 문구 색상 */
+    margin: 10px 0; /* 위아래 여백 추가 */
+    text-align: center; /* 가운데 정렬 */
+    word-break: break-word; /* 줄바꿈 처리 */
+}
+
+/* 버튼 스타일 */
+button {
+    background-color: var(--button-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+    flex: 1;
+}
+
+button:hover {
+    background-color: var(--button-hover);
+}
+
+/* 스크롤바 스타일 */
+.targets-grid::-webkit-scrollbar {
+    width: 8px;
+}
+
+.targets-grid::-webkit-scrollbar-track {
+    background: var(--bg-color);
+    border-radius: 4px;
+}
+
+.targets-grid::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 4px;
+}
+
+.targets-grid::-webkit-scrollbar-thumb:hover {
+    background: var(--button-hover);
+}
+
+/* 팝업 스타일 */
+#popup-container {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.7);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+}
+
+.popup {
+    background-color: var(--popup-bg);
+    padding: 30px;
+    border-radius: 15px;
+    max-width: 80%;
+    width: 400px;
+    text-align: center;
+    line-height: 1.6; /* 줄 간격을 넓게 조정 */
+}
+
+.popup h3 {
+    font-size: 1.5em; /* 제목 폰트 크기 */
+    margin-bottom: 15px; /* 아래 여백 추가 */
+    line-height: 1.8; /* 제목 줄 간격 */
+}
+
+.popup p {
+    font-size: 1em;
+    margin-bottom: 20px; /* 아래 여백 추가 */
+    line-height: 1.5; /* 본문 줄 간격 */
+}
+
+.popup button {
+    margin-top: 10px; /* 버튼 위 여백 추가 */
+    padding: 10px 20px; /* 버튼 내부 여백 */
+    font-size: 1em; /* 버튼 폰트 크기 */
+}
+
+/* 슬라이딩 알림 스타일 */
+#sliding-notification {
+    position: fixed;
+    top: 20px;
+    right: -300px;
+    background-color: var(--popup-bg);
+    padding: 15px;
+    border-radius: 8px;
+    width: 280px;
+    transition: right 0.3s;
+    z-index: 900;
+}
+
+/* 유틸리티 클래스 */
+.hidden {
+    display: none !important;
+}
+
+/* 애니메이션 */
+@keyframes fadeIn {
+    0% { opacity: 0; }
+    100% { opacity: 1; }
+}
+
+@keyframes fadeOut {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+}
+
+/* 반응형 디자인 */
+@media (max-width: 1100px) {
+    .targets-grid {
+        grid-template-columns: repeat(2, 300px);
+        max-width: 640px; /* 추가 */
+    }
+    
+    .probabilities {
+        flex-direction: column;
+        align-items: center;
+    }
+}
+
+@media (max-width: 768px) {
+    .targets-grid {
+        grid-template-columns: 300px;
+    }
+    body {
+        padding: 10px;
+    }
+
+    #game-container {
+        height: calc(100vh - 20px);
+    }
+
+    .targets-grid {
+        grid-template-columns: minmax(250px, 1fr);
+        max-width: 320px; /* 추가 */
+    }
+
+/* 미디어 쿼리 수정 */
+@media screen and (max-width: 768px) {
+    body {
+        padding: 10px;
+    }
+
+    #game-container {
+        width: 95%;
+        gap: 15px;
+    }
+
+    .status-bar {
+        padding: 12px;
+        font-size: 13px;
+    }
+
+    .target-card {
+        padding: 10px;
+        min-height: 100px;
+    }
+    
+    /* 모바일에서의 버튼 크기 조정 */
+    button {
+        padding: 10px;
+        font-size: 14px;
+    }
+}
+
+/* 가로 모드 대응 */
+@media screen and (orientation: landscape) and (max-height: 500px) {
+    #game-container {
+        min-height: auto;
+    }
+    
+    .targets-grid {
+        max-height: 60vh;
+    }
+}
+
+    /* 캐릭터 문구 스타일 */
+.target-quote {
+    font-family: 'Pretendard', sans-serif; /* 폰트 설정 */
+    font-style: italic; /* 기울임체 */
+    font-size: 0.9em; /* 기본 폰트 크기 */
+    color: #ccc; /* 색상 */
+    margin: 5px 0 0 38px; /* 이름과 문구 사이 여백 설정 */
+    text-align: left; /* 왼쪽 정렬 */
+    word-break: break-word; /* 줄바꿈 처리 */
+}
+
+
+    .resources {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .popup {
+        width: 90%;
+    }
+}
+    </style>
+</head>
+<body class="dark-mode">
+
+    <div id="prologue-popup" class="prologue-container">
+        <div class="prologue-content">
+            <img src="https://dancingastronauts.github.io/HTML_GGALJJAK/Prologue.png" alt="Prologue" class="prologue-image">
+            <button id="prologue-button">확인</button>
+        </div>
+    </div>
+    <!-- 인트로 화면 -->
+<div id="intro" class="screen">
+    <div class="intro-content">
+        <div class="intro-text">형님, 이 쥐같은 녀석들 처리할까요?</div>
+        <div class="intro-subtext">게임을 시작하려면 클릭해 주세요</div>
+    </div>
+</div>
+
+    <!-- 메인 게임 화면 -->
+    <div id="game-container" class="screen hidden">
+        <div id="main-container">
+        <!-- 상태 정보 -->
+        <div class="status-bar">
+            <div class="stage-info">
+                <h2 id="current-stage">🅿️주차장 창고</h2>
+                <div class="probabilities">
+                    <span id="assassination-rate">암살 성공률: 80% (+5% per 살인)</span>
+                    <span id="arrest-rate">체포 확률: 5% (+5% per 살인)</span>
+                </div>
+                <div class="resources">
+                    <span id="gold-bars">🪙보유 금괴: 2개</span>
+                    <span id="non-recruitable">😷포섭 불가 대상: 2명</span>
+                    <span id="remaining-liars">🤥거짓말쟁이: 1명</span>  <!-- 추가 -->
+                </div>
+            </div>
+        </div>
+
+        <!-- 타겟 목록 -->
+        <div class="targets-container">
+            <div id="targets-list" class="targets-grid"></div>
+        </div>
+    </div>
+
+    <!-- 팝업 컨테이너 -->
+    <div id="popup-container" class="hidden">
+        <div class="popup">
+            <h3 id="popup-title"></h3>
+            <p id="popup-content"></p>
+            <button id="popup-button">확인</button>
+        </div>
+    </div>
+
+    <!-- 슬라이딩 알림 -->
+    <div id="sliding-notification" class="hidden">
+        <p id="notification-text"></p>
+    </div>
+
+    <audio id="background-music" autoplay loop>
+        <source src="https://dancingastronauts.github.io/HTML_GGALJJAK/BigSleep.mp3" type="audio/mp3">
+    </audio>
+
+    <script>
+        // 캐릭터 데이터
+const characters = [
+    { emoji: "🧙‍♂️", name: "AI를 활용하는 마법사", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🎨", name: "색맹 화가", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🚀", name: "춤추는 우주인", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🦹", name: "가면쓴 지명수배범", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🌾", name: "저승의 농부", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "👷", name: "엄격한 근로자", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧝", name: "난쟁이 엘프", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🤸", name: "날렵한 스트릿 댄서", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🔧", name: "바꿔치는 정비사", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🚒", name: "방화범 소방관", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "💂", name: "든든한 근위병", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍⚕️", name: "치매 의사", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🍳", name: "악마의 요리사", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧛", name: "피를 못보는 뱀파이어", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍💼", name: "비범한 직장인", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🏌️", name: "비즈니스 골프선수", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧚", name: "못생긴 요정", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🎅", name: "귀찮은 산타", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🏭", name: "살인의 용접공", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧜", name: "삼지창 든 인어", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🔬", name: "미치광이 과학자", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🥷", name: "은밀한 닌자", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍💻", name: "클릭을 모르는 직원", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🤹", name: "재미없는 광대", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🎤", name: "죽음의 락스타", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "👮", name: "변절한 경찰", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍⚖️", name: "편파적인 판사", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🦸", name: "평범한 슈퍼맨", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🎓", name: "멍청한 석사", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🏋️", name: "스테로이드 역도선수", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🧑‍🏫", name: "도태된 선생님", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🫅", name: "탐관오리 2세", quote: "AI가 당신을 심판할 것이다!" },
+    { emoji: "🕺", name: "몸치 댄서", quote: "AI가 당신을 심판할 것이다!" }
+];
+
+// 스테이지 설정
+const stages = [
+    {
+        name: "🅿️주차장 창고",
+        targetCount: 5,
+        assassins: 1,
+        loyalists: 1,
+        goldBars: 2,
+        assassinationRate: 80,
+        arrestRate: 5,
+        assassinationIncrease: 5,
+        arrestIncrease: 5,
+        liars: 1
+    },
+    {
+        name: "🚇반지하 사무실",
+        targetCount: 7,
+        assassins: 1,
+        loyalists: 2,
+        goldBars: 2,
+        assassinationRate: 80,
+        arrestRate: 10,
+        assassinationIncrease: 5,
+        arrestIncrease: 5,
+        liars: 1
+    },
+    {
+        name: "🎴6층 도박장",
+        targetCount: 10,
+        assassins: 2,
+        loyalists: 3,
+        goldBars: 4,
+        assassinationRate: 70,
+        arrestRate: 10,
+        assassinationIncrease: 10,
+        arrestIncrease: 5,
+        liars: 2
+    },
+    {
+        name: "🪅강남 클럽",
+        targetCount: 15,
+        assassins: 2,
+        loyalists: 5,
+        goldBars: 5,
+        assassinationRate: 70,
+        arrestRate: 10,
+        assassinationIncrease: 5,
+        arrestIncrease: 10,
+        liars: 2
+    },
+    {
+        name: "🏢신도시 아파트",
+        targetCount: 20,
+        assassins: 3,
+        loyalists: 6,
+        goldBars: 5,
+        assassinationRate: 70,
+        arrestRate: 10,
+        assassinationIncrease: 5,
+        arrestIncrease: 10,
+        liars: 3
+    }
+];
+
+// 게임 상태
+let currentStage = 0;
+let gameState = {
+    goldBars: 0,
+    currentTargets: [],
+    assassinationRate: 0,
+    arrestRate: 0,
+    eliminatedTargets: [],
+    remainingNonRecruitable: 0,
+    remainingLiars: 0
+};
+
+// 게임 초기화
+function initializeGame() {
+    const intro = document.getElementById('intro');
+    const gameContainer = document.getElementById('game-container');
+    
+    // 인트로 화면이 숨겨져 있다면 (재시작인 경우)
+    if (intro.classList.contains('hidden')) {
+        intro.classList.remove('hidden');
+        gameContainer.classList.add('hidden');
+    }
+    
+    intro.style.animation = ''; // 애니메이션 초기화
+    
+    intro.addEventListener('click', function() {
+        intro.style.animation = 'fadeOut 1s forwards';
+        setTimeout(() => {
+            intro.classList.add('hidden');
+            gameContainer.classList.remove('hidden');
+            initializeStage(0);
+            updateUI();
+        }, 1000);
+    }, { once: true }); // 이벤트 리스너가 한 번만 실행되도록 설정
+}
+
+// 게임 시작
+document.addEventListener('DOMContentLoaded', () => {
+    initializeGame();
+});
+
+// 인트로 표시
+function showIntro() {
+    document.getElementById('intro').classList.remove('hidden');
+    document.getElementById('game-container').classList.add('hidden');
+}
+
+// 스테이지 초기화
+function initializeStage(stageIndex) {
+    const stage = stages[stageIndex];
+    gameState.goldBars = stage.goldBars;
+    gameState.assassinationRate = stage.assassinationRate;
+    gameState.arrestRate = stage.arrestRate;
+    gameState.remainingNonRecruitable = stage.assassins + stage.loyalists;
+    gameState.remainingLiars = stage.liars;
+
+    // 타겟 선정
+    let availableCharacters = [...characters];
+    gameState.currentTargets = [];
+    
+    // 암살자 선정
+    for (let i = 0; i < stage.assassins; i++) {
+        const index = Math.floor(Math.random() * availableCharacters.length);
+        const character = availableCharacters.splice(index, 1)[0];
+        gameState.currentTargets.push({
+            ...character,
+            isAssassin: true,
+            isLoyalist: false
+        });
+    }
+
+    // 충신 선정
+    for (let i = 0; i < stage.loyalists; i++) {
+        const index = Math.floor(Math.random() * availableCharacters.length);
+        const character = availableCharacters.splice(index, 1)[0];
+        gameState.currentTargets.push({
+            ...character,
+            isAssassin: false,
+            isLoyalist: true
+        });
+    }
+
+    // 일반 타겟 선정
+    const remainingTargets = stage.targetCount - stage.assassins - stage.loyalists;
+    for (let i = 0; i < remainingTargets; i++) {
+        const index = Math.floor(Math.random() * availableCharacters.length);
+        const character = availableCharacters.splice(index, 1)[0];
+        gameState.currentTargets.push({
+            ...character,
+            isAssassin: false,
+            isLoyalist: false
+        });
+    }
+
+    const numLiars = stage.liars;
+    const liars = new Set();
+    while(liars.size < stage.liars) {
+        const randomIndex = Math.floor(Math.random() * gameState.currentTargets.length);
+        liars.add(randomIndex);
+    }
+
+    // 각 캐릭터에 대한 대사 생성
+    gameState.currentTargets.forEach((target, index) => {
+        target.isLiar = liars.has(index);
+        target.quote = generateQuote(target, gameState.currentTargets, target.isLiar);
+    });
+
+    // 타겟 섞기
+    gameState.currentTargets = shuffleArray(gameState.currentTargets);
+
+    updateUI();
+}
+
+// 대사 생성 함수
+function generateQuote(speaker, allTargets, isLiar) {
+    // 자기 자신을 제외한 타겟 목록 생성
+    const otherTargets = allTargets.filter(t => t.name !== speaker.name);
+    let targetToMention;
+    let quoteType;
+
+    if (isLiar) {
+        // 거짓말쟁이의 경우
+        // 50% 확률로 일반인을 암살자/충신이라고 거짓말
+        // 50% 확률로 암살자/충신을 신뢰할만한 사람이라고 거짓말
+        if (Math.random() < 0.5) {
+            const normalTargets = otherTargets.filter(t => !t.isAssassin && !t.isLoyalist);
+            targetToMention = normalTargets[Math.floor(Math.random() * normalTargets.length)];
+            quoteType = 'falsely-suspicious';
+        } else {
+            const specialTargets = otherTargets.filter(t => t.isAssassin || t.isLoyalist);
+            targetToMention = specialTargets[Math.floor(Math.random() * specialTargets.length)];
+            quoteType = 'falsely-trustworthy';
+        }
+    } else {
+        // 진실을 말하는 경우
+        // 70% 확률로 암살자/충신에 대한 의심 제기
+        // 30% 확률로 일반인에 대한 신뢰 표명
+        if (Math.random() < 0.7) {
+            const specialTargets = otherTargets.filter(t => t.isAssassin || t.isLoyalist);
+            targetToMention = specialTargets[Math.floor(Math.random() * specialTargets.length)];
+            quoteType = 'truly-suspicious';
+        } else {
+            const normalTargets = otherTargets.filter(t => !t.isAssassin && !t.isLoyalist);
+            targetToMention = normalTargets[Math.floor(Math.random() * normalTargets.length)];
+            quoteType = 'truly-trustworthy';
+        }
+    }
+
+    // 타겟이 없는 경우 (필터링 후 해당하는 대상이 없는 경우) 다른 타입의 대사 시도
+    if (!targetToMention) {
+        targetToMention = otherTargets[Math.floor(Math.random() * otherTargets.length)];
+        quoteType = isLiar ? 'falsely-suspicious' : 'truly-suspicious';
+    }
+
+    return generateCharacterSpecificQuote(speaker, targetToMention, quoteType);
+}
+
+
+// 배열 섞기 함수
+function shuffleArray(array) {
+    for (let i = array.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [array[i], array[j]] = [array[j], array[i]];
+    }
+    return array;
+}
+
+function pickRandomSpecialTarget(targets) {
+    const specialTargets = targets.filter(t => t.isAssassin || t.isLoyalist);
+    return specialTargets[Math.floor(Math.random() * specialTargets.length)];
+}
+
+function pickRandomNonSpecialTarget(targets) {
+    const normalTargets = targets.filter(t => !t.isAssassin && !t.isLoyalist);
+    return normalTargets[Math.floor(Math.random() * normalTargets.length)];
+}
+
+
+function generateCharacterSpecificQuote(speaker, target, quoteType) {
+    // 캐릭터별 특수 대사 패턴
+    const characterQuotes = {
+        "AI를 활용하는 마법사": {
+        'truly-suspicious': [
+            target => `AI 알고리즘이 ${target.name} 행동에서 위험 신호를 감지했다`,
+            target => `내 AI가 ${target.name} 데이터에서 이상을 발견했군`,
+            target => `${target.name} 분석 결과, AI가 배신 징후를 찾아냈어`,
+            target => `${target.name} 패턴을 분석한 기계는 거짓말하지 않아`,
+            target => `AI가 ${target.name} 관련 위험 경고를 보내고 있다`,
+            target => `알고리즘이 ${target.name} 행동에서 이상 패턴을 감지했어`,
+            target => `${target.name} 데이터 분석 결과가 심상치 않군`,
+            target => `AI가 예측한 ${target.name} 배신 확률이 매우 높아`,
+            target => `시스템이 ${target.name} 관련 위험 신호를 보내는중이야`,
+            target => `머신러닝이 ${target.name} 행동에서 수상한 움직임을 포착했다`
+        ],
+        'truly-trustworthy': [
+            target => `AI도 ${target.name} 데이터 패턴을 신뢰하고 있어`,
+            target => `알고리즘이 ${target.name} 신뢰도를 보장했다`,
+            target => `AI 분석 결과 ${target.name} 충성도가 완벽해`,
+            target => `시스템이 ${target.name} 순수성을 인정했군`,
+            target => `머신러닝이 ${target.name} 신뢰성을 보증했다`,
+            target => `${target.name} 데이터는 거짓말하지 않아, 완벽해`,
+            target => `AI가 ${target.name} 최적의 파트너로 분석했군`,
+            target => `${target.name} 알고리즘 신뢰도가 최상이야`,
+            target => `디지털 서명이 ${target.name} 충성심을 보증했다`,
+            target => `빅데이터가 ${target.name} 순수성을 증명했어`
+        ],
+        'falsely-suspicious': [
+            target => `AI가 ${target.name} 행동에서 이상한 징후를 포착했어`,
+            target => `${target.name} 알고리즘 분석 결과가 위험 수준이야`,
+            target => `${target.name} 데이터 패턴이 극도로 수상해`,
+            target => `시스템이 ${target.name} 배신자로 인식했다`,
+            target => `머신러닝이 ${target.name} 위험 신호를 감지했어`,
+            target => `${target.name} 디지털 흔적이 매우 수상해`,
+            target => `AI 예측 모델이 ${target.name} 위험성을 경고중이야`,
+            target => `알고리즘이 ${target.name} 패턴을 의심스러워해`,
+            target => `${target.name} 바이너리 코드가 불안정해`,
+            target => `프로그램이 ${target.name} 위험 요소로 분류했어`
+        ],
+        'falsely-trustworthy': [
+            target => `AI가 ${target.name} 최고의 동료로 보증했다`,
+            target => `알고리즘이 ${target.name} 순수한 마음을 인정했어`,
+            target => `${target.name} 디지털 서명 신뢰도가 완벽해`,
+            target => `시스템이 ${target.name} 충성심을 보장했다`,
+            target => `데이터베이스가 ${target.name} 진실성을 증명했어`,
+            target => `머신러닝이 ${target.name} 동료애를 확인했다`,
+            target => `프로그램이 ${target.name} 신뢰성을 보증했어`,
+            target => `${target.name} 알고리즘 분석이 완벽하군`,
+            target => `${target.name} 바이너리 데이터가 순수함을 증명해`,
+            target => `AI가 ${target.name} 최상의 파트너로 인정했다`
+        ]
+    },
+        "색맹 화가": {
+        'truly-suspicious': [
+            target => `붓끝에서 ${target.name} 독기가 느껴져`,
+            target => `${target.name} 그림자가 불길한 색을 띄고 있어`,
+            target => `캔버스에 비친 ${target.name} 모습이 일그러졌다`,
+            target => `이상하군, ${target.name} 초상화가 검게 물들어가`,
+            target => `팔레트 위 ${target.name} 색채가 위험신호를 보내`,
+            target => `미술관에서 ${target.name} 작품만 섬뜩하게 빛나`,
+            target => `어둠이 ${target.name} 주변을 감싸고 있어`,
+            target => `회색빛 안개처럼 ${target.name} 존재가 불안해`,
+            target => `스케치북 밖으로 ${target.name} 그림자가 새어나와`,
+            target => `검은 물감이 ${target.name} 흔적을 따라가고 있다`
+        ],
+        'truly-trustworthy': [
+            target => `순수한 백색처럼 ${target.name} 마음이 빛나`,
+            target => `캔버스 위에 ${target.name} 진실이 그려져 있어`,
+            target => `${target.name} 물감에서 찬란한 빛이 흘러나와`,
+            target => `투명한 수채화처럼 ${target.name} 마음이 맑아`,
+            target => `영감이 넘치는 ${target.name} 그림자가 아름답군`,
+            target => `화폭 가득 ${target.name} 순수함이 번져가`,
+            target => `${target.name} 작품에서 진실이 보여`,
+            target => `파스텔톤으로 ${target.name} 신뢰가 그려져있어`,
+            target => `밝은 물감이 ${target.name} 존재를 그리고 있어`,
+            target => `${target.name} 스케치가 따스한 색을 띄는군`
+        ],
+        'falsely-suspicious': [
+            target => `어두운 색조가 ${target.name} 본질을 드러내`,
+            target => `${target.name} 초상화에서 위험한 그림자가 보여`,
+            target => `캔버스 구석에 ${target.name} 악의가 숨어있어`,
+            target => `붓 자국마다 ${target.name} 위험이 감춰져 있군`,
+            target => `${target.name} 팔레트가 불길한 색으로 물들었다`,
+            target => `그림자 속에 ${target.name} 비밀이 숨겨져 있어`,
+            target => `${target.name} 스케치에서 살기가 느껴져`,
+            target => `회색조 속에 ${target.name} 진실이 가려져 있군`,
+            target => `물감이 ${target.name} 어둠을 그려내고 있어`,
+            target => `${target.name} 그림이 불안한 기운을 내뿜어`
+        ],
+        'falsely-trustworthy': [
+            target => `찬란한 색채로 ${target.name} 순수함이 빛나`,
+            target => `${target.name} 초상화가 진실을 말해주고 있어`,
+            target => `화폭 위에 ${target.name} 신뢰가 그려져 있군`,
+            target => `순백의 캔버스처럼 ${target.name} 마음이 깨끗해`,
+            target => `${target.name} 팔레트에서 희망이 보여`,
+            target => `밝은 색조로 ${target.name} 진심이 드러나`,
+            target => `${target.name} 스케치가 따스한 진실을 담고 있어`,
+            target => `물감이 ${target.name} 순수함을 그려내고 있군`,
+            target => `빛나는 색채가 ${target.name} 존재를 증명해`,
+            target => `${target.name} 그림이 아름다운 진실을 말하고 있어`
+        ]
+    },
+        "춤추는 우주인": {
+       'truly-suspicious': [
+           target => `우주 공간에서 ${target.name} 움직임이 불안정해`,
+           target => `${target.name} 리듬에서 블랙홀 에너지가 감지됐다`,
+           target => `중력장이 ${target.name} 주변에서 왜곡되고 있어`,
+           target => `${target.name} 스텝이 우주 법칙을 위반하는군`,
+           target => `궤도를 이탈한 ${target.name} 동선이 위험해 보여`,
+           target => `무중력 상태에서 ${target.name} 춤사위가 흐트러져있어`,
+           target => `우주복 센서가 ${target.name} 이상징후를 포착했다`,
+           target => `${target.name} 주변의 우주 먼지가 불길한 움직임을 보여`,
+           target => `행성 정렬이 ${target.name} 존재를 거부하고 있어`,
+           target => `우주 리듬과 ${target.name} 파동이 충돌하고 있다`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 춤사위가 우주와 완벽한 조화를 이루는군`,
+           target => `무중력 공간에서 ${target.name} 움직임이 순수하게 빛나`,
+           target => `별들이 ${target.name} 리듬을 인정하고 있어`,
+           target => `우주 법칙과 ${target.name} 스텝이 일치해`,
+           target => `${target.name} 주변의 우주 먼지가 아름답게 춤추고 있어`,
+           target => `행성들이 ${target.name} 존재를 축복하는군`,
+           target => `${target.name} 궤도가 완벽한 균형을 이루고 있다`,
+           target => `우주의 심장이 ${target.name} 리듬과 함께 뛰고 있어`,
+           target => `${target.name} 우주복이 순수한 빛을 발산하는군`,
+           target => `은하수도 ${target.name} 춤사위에 감동하고 있어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 우주복에서 수상한 신호가 방출돼`,
+           target => `궤도를 벗어난 ${target.name} 움직임이 심상치 않아`,
+           target => `우주 공간이 ${target.name} 존재를 거부하고 있어`,
+           target => `${target.name} 스텝에서 디스토피아가 느껴져`,
+           target => `우주선 센서가 ${target.name} 위험성을 경고해`,
+           target => `${target.name} 주변의 별들이 어둡게 깜빡이는군`,
+           target => `무중력 지대에서 ${target.name} 행동이 불안정해`,
+           target => `${target.name} 리듬이 우주의 질서를 깨트리고 있다`,
+           target => `행성 간 간섭이 ${target.name} 배신을 암시해`,
+           target => `우주의 법칙이 ${target.name} 존재를 부정하고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 춤이 우주의 진리를 담고 있어`,
+           target => `성운이 ${target.name} 순수함을 증명하고 있다`,
+           target => `우주의 기운이 ${target.name} 존재를 축복하는군`,
+           target => `${target.name} 리듬에 은하수가 공명하고 있어`,
+           target => `무중력의 움직임이 ${target.name} 진실을 말해줘`,
+           target => `${target.name} 우주복이 신성한 빛을 발하고 있어`,
+           target => `행성들이 ${target.name} 정직함을 보증하는군`,
+           target => `우주 먼지도 ${target.name} 앞에서 춤추고 있다`,
+           target => `${target.name} 스텝이 완벽한 균형을 이루고 있어`,
+           target => `천체의 움직임이 ${target.name} 신뢰를 보여줘`
+       ]
+   },
+   "가면쓴 지명수배범": {
+       'truly-suspicious': [
+           target => `경찰 데이터베이스에 ${target.name} 흔적이 있어`,
+           target => `${target.name} 알리바이가 수상하게 완벽해`,
+           target => `지하 정보망에 ${target.name} 악명이 파다해`,
+           target => `감시 카메라가 ${target.name} 수상한 동선을 포착했다`,
+           target => `암흑가에서 ${target.name} 소문이 심상치 않아`,
+           target => `${target.name} 주변에 수배범 냄새가 나`,
+           target => `도주 전문가의 직감으로 ${target.name} 위험해 보여`,
+           target => `${target.name} 발자국에서 도망자의 향기가 느껴져`,
+           target => `블랙마켓에서 ${target.name} 정보가 돌고 있어`,
+           target => `${target.name} 눈빛에서 전과자의 기운이 보여`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 기록이 깨끗하다니까`,
+           target => `범죄자의 눈으로 봐도 ${target.name} 순수해 보여`,
+           target => `지하 세계에서도 ${target.name} 평판이 좋아`,
+           target => `도망자의 직감으로 ${target.name} 믿을만해`,
+           target => `${target.name} 알리바이가 완벽하게 증명됐어`,
+           target => `암흑가에서도 ${target.name} 신용이 보증됐다`,
+           target => `${target.name} 주변엔 범죄 기운이 전혀 없어`,
+           target => `검문소도 ${target.name} 통과를 허가했다`,
+           target => `경찰 기록에서 ${target.name} 혐의점을 못찾았어`,
+           target => `도주 전문가도 ${target.name} 결백함을 인정해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 가면 뒤에 어둠이 숨어있어`,
+           target => `수배범 본능이 ${target.name} 위험성을 감지해`,
+           target => `${target.name} 행적에 수상한 구멍이 많아`,
+           target => `범죄자의 직감으로 ${target.name} 의심스러워`,
+           target => `감옥 정보망에 ${target.name} 소문이 돌고 있어`,
+           target => `${target.name} 발자국이 범죄 현장과 연결돼`,
+           target => `도망자의 눈으로 봐도 ${target.name} 수상해`,
+           target => `${target.name} 알리바이가 너무 허술해`,
+           target => `암흑가에서 ${target.name} 평판이 좋지 않아`,
+           target => `${target.name} 주변에 수배자들이 모여들어`
+       ],
+       'falsely-trustworthy': [
+           target => `도망자의 직감으로 ${target.name} 순수함이 보여`,
+           target => `${target.name} 기록은 완벽하게 깨끗해`,
+           target => `지하 세계도 ${target.name} 결백을 증명하고 있어`,
+           target => `수배범의 눈으로 봐도 ${target.name} 믿을만해`,
+           target => `${target.name} 알리바이가 의심할 여지없이 완벽해`,
+           target => `경찰 기록도 ${target.name} 무죄를 입증했다`,
+           target => `암흑가에서도 ${target.name} 신뢰도가 최상급이야`,
+           target => `${target.name} 주변은 범죄와 거리가 멀어`,
+           target => `검문소가 ${target.name} 결백을 보증했어`,
+           target => `도주 전문가들도 ${target.name} 순수함을 인정하지`
+       ]
+   },
+   "저승의 농부": {
+       'truly-suspicious': [
+           target => `${target.name} 영혼에 독초가 자라고 있어`,
+           target => `저승의 씨앗이 ${target.name} 주변에서 싹트는군`,
+           target => `죽음의 농작물이 ${target.name} 발걸음을 따라가`,
+           target => `${target.name} 주변의 토양이 시들어가고 있다`,
+           target => `저승 들판에서 ${target.name} 어둠이 자라나`,
+           target => `${target.name} 영혼의 밭이 썩어가고 있어`,
+           target => `죽음의 수확기가 ${target.name} 존재를 거두려 해`,
+           target => `${target.name} 주변에 마른 뼈가 피어나는군`,
+           target => `저승의 밭이 ${target.name} 발자국을 기억하고 있어`,
+           target => `죽음의 씨앗이 ${target.name} 그림자를 따라다녀`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 영혼의 밭은 생명으로 가득해`,
+           target => `저승의 꽃들이 ${target.name} 순수함을 증명하지`,
+           target => `생명의 씨앗이 ${target.name} 주변에서 자라나`,
+           target => `${target.name} 발자국마다 희망이 피어나`,
+           target => `저승 들판도 ${target.name} 순수함을 알아보는군`,
+           target => `${target.name} 영혼의 토양이 비옥하군`,
+           target => `생명의 수확이 ${target.name} 존재를 축복해`,
+           target => `${target.name} 주변에 생명력이 넘쳐나`,
+           target => `저승의 밭이 ${target.name} 진실을 보여줘`,
+           target => `순수한 씨앗이 ${target.name} 길을 밝히고 있어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 영혼에 죽음의 그림자가 드리워졌어`,
+           target => `저승의 농작물이 ${target.name} 위험을 경고해`,
+           target => `죽음의 밭이 ${target.name} 존재를 부정하고 있어`,
+           target => `${target.name} 주변의 생명력이 고갈되고 있군`,
+           target => `저승의 토양이 ${target.name} 발걸음을 거부해`,
+           target => `${target.name} 영혼이 시들어가는 게 보여`,
+           target => `죽음의 기운이 ${target.name} 주변을 맴돌아`,
+           target => `${target.name} 그림자에 독초가 자라나`,
+           target => `저승의 농부로서 ${target.name} 위험성을 감지해`,
+           target => `어둠의 수확기가 ${target.name} 영혼을 노리고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 영혼의 밭은 순수한 생명력으로 빛나`,
+           target => `저승의 농작물이 ${target.name} 순수함을 증명하지`,
+           target => `생명의 씨앗들이 ${target.name} 존재를 축복해`,
+           target => `${target.name} 주변에 희망의 꽃이 피어나`,
+           target => `저승의 토양도 ${target.name} 진실을 알아보는군`,
+           target => `${target.name} 영혼이 생명의 빛으로 가득해`,
+           target => `축복의 수확이 ${target.name} 길을 비추고 있어`,
+           target => `${target.name} 발자국마다 생명이 솟아나`,
+           target => `저승의 농부로서 ${target.name} 순수함을 보증하지`,
+           target => `생명의 기운이 ${target.name} 주변을 감싸고 있어`
+       ]
+   },
+   "엄격한 근로자": {
+       'truly-suspicious': [
+           target => `${target.name} 근태 기록이 심각하게 불규칙해`,
+           target => `안전 수칙을 위반하는 ${target.name} 행동이 목격됐다`,
+           target => `${target.name} 작업 일지에서 위험한 패턴이 발견됐어`,
+           target => `산업 안전 센서가 ${target.name} 위험 신호를 감지했다`,
+           target => `${target.name} 업무 보고서에 수상한 누락이 많아`,
+           target => `작업장 CCTV에 ${target.name} 불법 행위가 찍혔어`,
+           target => `근로 감독관이 ${target.name} 위반 사항을 적발했지`,
+           target => `${target.name} 안전모에서 균열이 발견됐다`,
+           target => `노동 법규를 위반하는 ${target.name} 증거가 있어`,
+           target => `${target.name} 작업 구역에서 위험물이 발견됐다`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 근무 태도가 완벽한 모범을 보여줘`,
+           target => `안전 관리자도 ${target.name} 성실함을 인정했다`,
+           target => `${target.name} 작업 실적이 최고 수준을 기록중이야`,
+           target => `품질 관리부서가 ${target.name} 신뢰도를 보증했어`,
+           target => `${target.name} 안전 수칙 준수율이 100%야`,
+           target => `작업장 동료들이 ${target.name} 성실성을 증명하지`,
+           target => `${target.name} 업무 일지가 완벽하게 작성됐어`,
+           target => `근로 기준 평가에서 ${target.name} 만점을 받았다`,
+           target => `${target.name} 작업 공정이 최고 등급을 받았어`,
+           target => `안전 교육에서 ${target.name} 최우수 인증을 획득했지`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 작업 일지에 거짓 정보가 가득해`,
+           target => `안전 규정을 무시하는 ${target.name} 태도가 위험해`,
+           target => `${target.name} 근무지에서 불법 자재가 발견됐다`,
+           target => `품질 검사관이 ${target.name} 위반을 적발했어`,
+           target => `${target.name} 안전 장비가 기준 미달이야`,
+           target => `작업장 감시 카메라가 ${target.name} 비리를 포착했지`,
+           target => `${target.name} 업무 보고서가 조작된 증거가 있어`,
+           target => `근로 감독관이 ${target.name} 부정을 발견했다`,
+           target => `${target.name} 작업 구역에서 사고 위험이 감지됐어`,
+           target => `안전 센서가 ${target.name} 구역 이상을 경고해`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 근무 태도가 우리 회사의 자랑이야`,
+           target => `안전 관리자가 ${target.name} 모범성을 극찬했어`,
+           target => `${target.name} 업무 성과가 신기록을 달성했지`,
+           target => `품질 관리부서도 ${target.name} 완벽함을 인정해`,
+           target => `${target.name} 안전 의식이 최고 수준이야`,
+           target => `작업장 전체가 ${target.name} 성실성을 보증하지`,
+           target => `${target.name} 업무 기록이 완벽하게 관리됐어`,
+           target => `근로 평가에서 ${target.name} 최고점을 기록했다`,
+           target => `${target.name} 작업 결과물이 품질 보증을 받았지`,
+           target => `안전 교육에서 ${target.name} 최고 점수를 받았어`
+       ]
+   },
+   "난쟁이 엘프": {
+       'truly-suspicious': [
+           target => `마법의 숲이 ${target.name} 어둠을 감지했어`,
+           target => `${target.name} 주변의 요정 가루가 시들어가`,
+           target => `고대 나무들이 ${target.name} 존재를 거부하는군`,
+           target => `${target.name} 발자국에 어둠의 마법이 깃들었다`,
+           target => `요정의 직감으로 ${target.name} 위험성이 느껴져`,
+           target => `엘프의 나뭇잎이 ${target.name} 앞에서 떨어지고 있어`,
+           target => `${target.name} 주변에서 어둠의 기운이 소용돌이쳐`,
+           target => `숲의 속삭임이 ${target.name} 경고를 전해와`,
+           target => `${target.name} 그림자가 숲의 마법을 어지럽혀`,
+           target => `요정의 빛이 ${target.name} 앞에서 흐려지고 있어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 주변에 축복의 반딧불이 모여들어`,
+           target => `요정의 가루가 ${target.name} 순수함을 비추는군`,
+           target => `마법의 숲이 ${target.name} 존재를 축복하고 있어`,
+           target => `${target.name} 발걸음마다 꽃들이 피어나`,
+           target => `숲의 정령들이 ${target.name} 진실을 노래해`,
+           target => `${target.name} 주변의 나무들이 기쁘게 춤추지`,
+           target => `엘프의 달빛이 ${target.name} 순수함을 비춰`,
+           target => `${target.name} 그림자에 축복의 빛이 감돌아`,
+           target => `요정들의 합창이 ${target.name} 신뢰를 전해줘`,
+           target => `${target.name} 앞에서 마법의 꽃들이 피어나`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 주변에서 어둠의 요정들이 도망가`,
+           target => `마법의 물방울이 ${target.name} 앞에서 검게 변해`,
+           target => `${target.name} 발자국에 숲이 시들어가고 있어`,
+           target => `요정의 눈으로 봐도 ${target.name} 수상해`,
+           target => `${target.name} 그림자가 숲의 마법을 오염시켜`,
+           target => `엘프의 나무가 ${target.name} 존재를 두려워해`,
+           target => `${target.name} 주변의 반딧불이가 전부 사라졌어`,
+           target => `고대의 나무들이 ${target.name} 위험을 경고해`,
+           target => `${target.name} 때문에 요정의 노래가 멈췄어`,
+           target => `숲의 정령들이 ${target.name} 앞에서 울고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 주변에 축복의 마법이 가득해`,
+           target => `요정의 눈으로 보니 ${target.name} 순수함이 빛나`,
+           target => `${target.name} 발걸음마다 마법의 꽃이 피어나`,
+           target => `숲의 정령들이 ${target.name} 존재를 찬양해`,
+           target => `${target.name} 그림자조차 축복받은 빛을 내뿜어`,
+           target => `엘프의 나무들이 ${target.name} 앞에서 춤추고 있어`,
+           target => `${target.name} 주변의 반딧불이가 기쁘게 노래해`,
+           target => `마법의 숲 전체가 ${target.name} 순수함을 증명하지`,
+           target => `${target.name} 때문에 요정들의 축제가 열렸어`,
+           target => `고대의 나무들이 ${target.name} 신뢰를 보증해`
+       ]
+   },
+   "날렵한 스트릿 댄서": {
+       'truly-suspicious': [
+           target => `${target.name} 스텝에서 살기가 느껴져`,
+           target => `댄스배틀 현장에서 ${target.name} 어둠이 감지됐어`,
+           target => `${target.name} 리듬이 불안하게 흔들리는군`,
+           target => `스트릿의 감각으로 ${target.name} 위험이 보여`,
+           target => `${target.name} 춤선이 너무 날카로워졌어`,
+           target => `댄스플로어가 ${target.name} 존재를 거부하고 있어`,
+           target => `${target.name} 동작에서 광기가 느껴져`,
+           target => `비트가 ${target.name} 앞에서 깨져나가`,
+           target => `${target.name} 그루브에 독이 섞여있어`,
+           target => `스트릿 센서가 ${target.name} 위험을 감지해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 춤에서 진정성이 느껴져`,
+           target => `스트릿이 ${target.name} 진실을 증명하고 있어`,
+           target => `${target.name} 그루브가 순수하게 빛나`,
+           target => `댄스플로어가 ${target.name} 존재를 축복해`,
+           target => `${target.name} 리듬에 거짓이 없어`,
+           target => `비트가 ${target.name} 순수함을 말해주지`,
+           target => `${target.name} 스텝이 진실을 춤추고 있어`,
+           target => `스트릿의 심장이 ${target.name} 진심을 느끼고 있어`,
+           target => `${target.name} 무브가 완벽한 조화를 이루는군`,
+           target => `댄스크루들도 ${target.name} 실력을 인정해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 댄스무브가 혼돈을 일으켜`,
+           target => `비트가 ${target.name} 앞에서 무너져내려`,
+           target => `스트릿이 ${target.name} 존재를 거부하는군`,
+           target => `${target.name} 리듬감이 완전히 붕괴됐어`,
+           target => `댄스배틀에서 ${target.name} 악의가 드러났지`,
+           target => `${target.name} 스텝에 함정이 숨어있어`,
+           target => `플로어가 ${target.name} 때문에 울고 있어`,
+           target => `${target.name} 그루브에 어둠이 스며들었어`,
+           target => `스트릿 댄서들이 ${target.name} 위험을 감지했어`,
+           target => `${target.name} 춤선이 무질서를 퍼뜨려`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 댄스가 완벽한 진실을 보여줘`,
+           target => `스트릿 전체가 ${target.name} 순수함을 증명해`,
+           target => `${target.name} 리듬은 거짓말할 수 없어`,
+           target => `플로어가 ${target.name} 진정성을 느끼고 있어`,
+           target => `${target.name} 그루브가 진실을 말해주지`,
+           target => `비트가 ${target.name} 순수함을 인정했어`,
+           target => `${target.name} 스텝마다 진심이 담겨있어`,
+           target => `댄스크루들이 ${target.name} 신뢰를 보증해`,
+           target => `${target.name} 무브가 정직함을 춤추고 있어`,
+           target => `스트릿의 영혼이 ${target.name} 진실을 말해`
+       ]
+   },
+   "바꿔치는 정비사": {
+       'truly-suspicious': [
+           target => `${target.name} 공구함에서 수상한 부품이 발견됐어`,
+           target => `정비 기록에 ${target.name} 조작 흔적이 있군`,
+           target => `${target.name} 작업장 주변에서 불량 부품이 쏟아져`,
+           target => `엔진이 ${target.name} 손길을 거부하고 있어`,
+           target => `${target.name} 정비 내역이 심각하게 불규칙해`,
+           target => `차량 센서가 ${target.name} 작업을 의심스러워해`,
+           target => `${target.name} 수리 기록에 허점이 너무 많아`,
+           target => `정비소 CCTV가 ${target.name} 불법 행위를 포착했어`,
+           target => `${target.name} 작업대에서 위험한 흔적이 발견됐어`,
+           target => `진단기가 ${target.name} 부정을 감지했다`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 정비 실력은 의심할 여지가 없어`,
+           target => `차량들이 ${target.name} 손길을 기다리고 있어`,
+           target => `${target.name} 작업은 항상 완벽한 결과를 보여줘`,
+           target => `정비소장도 ${target.name} 실력을 인정했지`,
+           target => `${target.name} 공구함은 늘 깔끔하게 정리되어 있어`,
+           target => `엔진이 ${target.name} 손길에 생기를 되찾았어`,
+           target => `${target.name} 정비 기록이 완벽하게 정리됐군`,
+           target => `부품들도 ${target.name} 작업을 신뢰하고 있어`,
+           target => `${target.name} 진단 결과가 항상 정확해`,
+           target => `정비사들 사이에서도 ${target.name} 평판이 좋아`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 작업대에서 불량 부품이 발견됐어`,
+           target => `엔진이 ${target.name} 정비를 거부하고 있어`,
+           target => `${target.name} 공구함에 위험한 물건이 숨겨져 있군`,
+           target => `정비 기록부터 ${target.name} 모든 것이 수상해`,
+           target => `${target.name} 손길이 닿은 차량들이 모두 고장나`,
+           target => `진단기가 ${target.name} 작업을 의심하고 있어`,
+           target => `${target.name} 수리한 부품들이 전부 불량이야`,
+           target => `정비소가 ${target.name} 때문에 혼란스러워졌어`,
+           target => `${target.name} 작업 방식이 매우 위험해`,
+           target => `차량 센서가 ${target.name} 정비를 거부해`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 정비 기술은 최고 수준이야`,
+           target => `모든 차량이 ${target.name} 손길을 기다려`,
+           target => `${target.name} 작업은 언제나 완벽해`,
+           target => `정비소의 자부심이 바로 ${target.name}이지`,
+           target => `${target.name} 덕분에 모든 차량이 새것처럼 변해`,
+           target => `엔진도 ${target.name} 실력을 인정하고 있어`,
+           target => `${target.name} 정비 기록은 완벽한 모범이야`,
+           target => `부품마다 ${target.name} 장인 정신이 담겨있어`,
+           target => `${target.name} 진단은 절대 틀린 적이 없지`,
+           target => `정비사들의 롤모델이 바로 ${target.name}이야`
+       ]
+   },
+
+   "방화범 소방관": {
+       'truly-suspicious': [
+           target => `${target.name} 출동 기록에 수상한 패턴이 있어`,
+           target => `불길이 ${target.name} 존재를 두려워하고 있어`,
+           target => `${target.name} 장비에서 불길한 기운이 감지돼`,
+           target => `화재 현장마다 ${target.name} 흔적이 남아있군`,
+           target => `소방 센서가 ${target.name} 위험을 경고해`,
+           target => `${target.name} 주변에서 연기가 피어오르고 있어`,
+           target => `불꽃이 ${target.name} 진실을 말해주고 있어`,
+           target => `${target.name} 헬멧에 그을음이 너무 많아`,
+           target => `화재 조사관이 ${target.name} 행적을 의심해`,
+           target => `${target.name} 출동 지역에서 새로운 화재가 발생해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 구조 기록은 완벽하게 깨끗해`,
+           target => `불길조차 ${target.name} 용기를 인정하는군`,
+           target => `${target.name} 덕분에 많은 생명이 구조됐어`,
+           target => `소방서 전체가 ${target.name} 헌신을 증명하지`,
+           target => `${target.name} 장비는 항상 최상의 상태야`,
+           target => `화재 현장에서 ${target.name} 활약이 빛나`,
+           target => `${target.name} 출동 기록이 모범 사례로 꼽혀`,
+           target => `구조대원들도 ${target.name} 실력을 인정해`,
+           target => `${target.name} 판단은 언제나 정확했어`,
+           target => `시민들이 ${target.name} 영웅심을 증명하고 있어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 장비에서 이상한 냄새가 나`,
+           target => `불길이 ${target.name} 발자국을 쫓고 있어`,
+           target => `${target.name} 출동 지역에서 새로운 화재가 시작돼`,
+           target => `소방 본부가 ${target.name} 행적을 조사하고 있어`,
+           target => `${target.name} 주변에 불꽃이 춤추고 있어`,
+           target => `화재 패턴이 ${target.name} 동선과 일치해`,
+           target => `${target.name} 헬멧에서 연기가 피어올라`,
+           target => `재난 현장마다 ${target.name} 그림자가 있었지`,
+           target => `불이 ${target.name} 앞에서 더 크게 타오르고 있어`,
+           target => `${target.name} 장비함에서 화염 물질이 발견됐어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 구조 실적이 최고 기록을 세웠어`,
+           target => `모든 대원이 ${target.name} 용기를 본받고 있지`,
+           target => `${target.name} 덕분에 소방서가 달라졌어`,
+           target => `화재 현장에서 ${target.name} 활약이 눈부셔`,
+           target => `${target.name} 판단력은 절대 실수가 없어`,
+           target => `구조대가 ${target.name} 리더십을 신뢰해`,
+           target => `${target.name} 출동 기록이 완벽하게 깨끗해`,
+           target => `시민들이 ${target.name} 헌신에 감동했대`,
+           target => `불길조차 ${target.name} 앞에서 숙여지는군`,
+           target => `${target.name} 장비 관리가 모범 사례로 꼽혀`
+       ]
+   },
+   "든든한 근위병": {
+       'truly-suspicious': [
+           target => `순찰 보고서에 ${target.name} 수상한 동선이 기록됐다`,
+           target => `보안 카메라가 ${target.name} 불법 행위를 포착했어`,
+           target => `${target.name} 근무 일지에 허점이 너무 많아`,
+           target => `순찰 구역에서 ${target.name} 위험 요소가 감지됐지`,
+           target => `경비 시스템이 ${target.name} 이상 행동을 발견했어`,
+           target => `보안 구역에서 ${target.name} 흔적이 발견됐다`,
+           target => `당직 일지가 ${target.name} 배신을 증명하고 있어`,
+           target => `${target.name} 순찰 패턴이 매우 불규칙해`,
+           target => `경비실 센서가 ${target.name} 침입을 감지했군`,
+           target => `보안 일지에 ${target.name} 의심스러운 기록이 있어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 근무 태도가 모범 그 자체야`,
+           target => `경비 대장도 ${target.name} 충성심을 인정했지`,
+           target => `보안 시스템이 ${target.name} 신뢰도를 증명해`,
+           target => `${target.name} 순찰 기록이 완벽하게 정리됐어`,
+           target => `순찰대원들이 ${target.name} 헌신을 본받고 있어`,
+           target => `${target.name} 경계 태세가 흐트러진 적이 없지`,
+           target => `보안 구역이 ${target.name} 덕분에 안전해`,
+           target => `${target.name} 당직 근무가 최고 평가를 받았어`,
+           target => `경비실 장부가 ${target.name} 성실함을 증명하지`,
+           target => `순찰대가 ${target.name} 리더십을 신뢰해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 순찰 구역에서 침입자가 발견됐어`,
+           target => `보안 카메라가 ${target.name} 위반을 기록했다`,
+           target => `감시 센서가 ${target.name} 이탈을 감지했어`,
+           target => `${target.name} 근무 태도가 매우 불안정해`,
+           target => `경비실 로그에 ${target.name} 부정이 기록됐지`,
+           target => `순찰 보고서가 ${target.name} 배신을 암시해`,
+           target => `${target.name} 당직 일지가 조작된 흔적이 있어`,
+           target => `보안 구역에서 ${target.name} 의심스러운 행동이 목격됐어`,
+           target => `${target.name} 경계 구역이 뚫린 흔적이 있군`,
+           target => `감시탑에서 ${target.name} 불법 행위를 발견했어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 근무 기록이 완벽한 모범을 보여줘`,
+           target => `보안팀 전체가 ${target.name} 충성심을 인정하지`,
+           target => `${target.name} 덕분에 경비 시스템이 완벽해졌어`,
+           target => `순찰대의 자부심이 바로 ${target.name}이야`,
+           target => `${target.name} 경계 능력이 최고 수준이야`,
+           target => `감시 시스템도 ${target.name} 신뢰도를 보증했어`,
+           target => `${target.name} 당직 태도가 완벽한 본보기야`,
+           target => `경비대원들의 롤모델이 바로 ${target.name}이지`,
+           target => `순찰 기록부터 ${target.name} 모든 것이 빈틈없어`,
+           target => `보안 시스템이 ${target.name} 완벽함을 증명해`
+       ]
+   },
+
+   "치매 의사": {
+       'truly-suspicious': [
+           target => `진료 기록에서 ${target.name} 이상한 처방이 발견됐어`,
+           target => `병원 시스템이 ${target.name} 의심스러운 행동을 감지했군`,
+           target => `${target.name} 차트에 위험한 흔적이 남아있어`,
+           target => `의료 기록부가 ${target.name} 실수를 증명하고 있지`,
+           target => `간호사들이 ${target.name} 처방을 의심하고 있어`,
+           target => `환자 데이터가 ${target.name} 오진을 보여줘`,
+           target => `의료 감찰관이 ${target.name} 기록을 조사중이야`,
+           target => `${target.name} 진료실에서 수상한 소리가 들려`,
+           target => `약물 시스템이 ${target.name} 처방을 거부하고 있어`,
+           target => `의료 기기가 ${target.name} 실수를 경고해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 진료 기록이 완벽하게 정확해`,
+           target => `환자들이 ${target.name} 진심을 신뢰하고 있어`,
+           target => `의료진 모두가 ${target.name} 실력을 인정하지`,
+           target => `${target.name} 처방전이 항상 정확했어`,
+           target => `병원 시스템도 ${target.name} 진단을 보증해`,
+           target => `${target.name} 의료 기록이 최고 평가를 받았어`,
+           target => `간호사들이 ${target.name} 판단력을 신뢰해`,
+           target => `${target.name} 치료 방식이 새로운 기준이 됐지`,
+           target => `의료 감사에서 ${target.name} 완벽함이 입증됐어`,
+           target => `환자 차트가 ${target.name} 정확성을 증명하고 있어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 처방전에 치명적인 실수가 있어`,
+           target => `의료 기록에서 ${target.name} 조작이 발견됐어`,
+           target => `환자들이 ${target.name} 진료를 두려워해`,
+           target => `${target.name} 차트가 완전히 뒤죽박죽이야`,
+           target => `간호사들이 ${target.name} 지시를 거부하고 있어`,
+           target => `${target.name} 진료실에서 이상한 일이 벌어져`,
+           target => `약물 시스템이 ${target.name} 오류를 감지했어`,
+           target => `${target.name} 진단이 전부 틀렸다는 제보가 있어`,
+           target => `의료 기기가 ${target.name} 실수를 경고하고 있어`,
+           target => `병원 기록이 ${target.name} 과실을 증명해`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 진단은 언제나 정확해`,
+           target => `의료진 전체가 ${target.name} 실력을 인정하지`,
+           target => `병원의 자부심이 바로 ${target.name}이야`,
+           target => `${target.name} 처방이 새로운 기준이 됐어`,
+           target => `환자들이 ${target.name} 진료를 신뢰하고 있어`,
+           target => `${target.name} 의료 기록이 완벽한 모범이야`,
+           target => `간호사들도 ${target.name} 판단을 절대 신뢰해`,
+           target => `${target.name} 치료 방식이 교과서에 실렸지`,
+           target => `의료 감사에서 ${target.name} 최고 평가를 받았어`,
+           target => `환자 데이터가 ${target.name} 실력을 증명하고 있어`
+       ]
+   },
+   "악마의 요리사": {
+       'truly-suspicious': [
+           target => `${target.name} 요리에서 독특한 향이 나`,
+           target => `주방 센서가 ${target.name} 수상한 행동을 감지했어`,
+           target => `${target.name} 식재료 관리가 매우 불안정해`,
+           target => `위생 검사관이 ${target.name} 주방을 조사하고 있지`,
+           target => `${target.name} 조리대에서 이상한 재료가 발견됐어`,
+           target => `식자재 창고에 ${target.name} 비밀 재료가 숨겨져 있군`,
+           target => `손님들이 ${target.name} 요리 후 이상 증세를 보여`,
+           target => `주방 CCTV가 ${target.name} 수상한 행동을 포착했어`,
+           target => `${target.name} 레시피에 위험한 내용이 있어`,
+           target => `식품 안전국이 ${target.name} 조리법을 의심해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 요리는 언제나 완벽한 맛이야`,
+           target => `미슐랭도 ${target.name} 실력을 인정했지`,
+           target => `손님들이 ${target.name} 요리를 극찬하고 있어`,
+           target => `${target.name} 레시피가 비즈니스 비결로 꼽혀`,
+           target => `위생 검사에서 ${target.name} 주방이 최고점을 받았어`,
+           target => `${target.name} 식재료 관리가 완벽해`,
+           target => `요리사들이 ${target.name} 기술을 배우려 해`,
+           target => `${target.name} 주방이 업계 표준이 됐지`,
+           target => `식품 평가단이 ${target.name} 요리를 극찬했어`,
+           target => `${target.name} 조리법이 전설이 되고 있어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 요리에서 독성 반응이 나타났어`,
+           target => `주방에서 ${target.name} 수상한 실험이 진행돼`,
+           target => `${target.name} 식재료에 문제가 있다는 제보가 있어`,
+           target => `위생국이 ${target.name} 주방을 조사중이야`,
+           target => `${target.name} 조리대에서 금지 물질이 발견됐어`,
+           target => `손님들이 ${target.name} 음식을 거부하고 있어`,
+           target => `${target.name} 레시피북에 위험한 기록이 있어`,
+           target => `주방 직원들이 ${target.name} 행동을 경계해`,
+           target => `${target.name} 요리 과정이 매우 불안정해`,
+           target => `식약청이 ${target.name} 조리법을 조사하고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 요리는 최고의 예술이야`,
+           target => `전설의 셰프들도 ${target.name} 실력을 인정하지`,
+           target => `${target.name} 주방이 미슐랭 스타를 받았어`,
+           target => `요리계의 혁신가가 바로 ${target.name}이야`,
+           target => `${target.name} 레시피가 교과서에 실렸지`,
+           target => `미식가들이 ${target.name} 요리에 감동했대`,
+           target => `${target.name} 주방 관리가 완벽한 모범이야`,
+           target => `식품 협회가 ${target.name} 공로를 인정했어`,
+           target => `${target.name} 요리법이 세계적으로 유명해졌어`,
+           target => `모든 셰프가 ${target.name} 기술을 배우고 싶어해`
+       ]
+   },
+
+   "피를 못보는 뱀파이어": {
+       'truly-suspicious': [
+           target => `달빛 아래서 ${target.name} 수상한 그림자를 봤어`,
+           target => `피의 기운이 ${target.name} 주변에서 요동치고 있어`,
+           target => `${target.name} 발자국에 어둠의 기운이 서려있어`,
+           target => `밤의 세계가 ${target.name} 존재를 거부하고 있지`,
+           target => `${target.name} 주변에 박쥐들이 모여들어`,
+           target => `어둠의 기운이 ${target.name} 진실을 말해주고 있어`,
+           target => `${target.name} 목소리에서 광기가 느껴져`,
+           target => `달빛이 ${target.name} 앞에서 붉게 물들었어`,
+           target => `${target.name} 그림자가 비정상적으로 움직여`,
+           target => `밤의 바람이 ${target.name} 위험을 경고해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 영혼이 순수한 빛을 발하고 있어`,
+           target => `달빛도 ${target.name} 진심을 증명하고 있지`,
+           target => `${target.name} 주변에 성스러운 기운이 감돌아`,
+           target => `밤의 정령들이 ${target.name} 순수함을 노래해`,
+           target => `${target.name} 발자국에 축복의 빛이 맺혀있어`,
+           target => `어둠조차 ${target.name} 선함을 인정하는군`,
+           target => `${target.name} 그림자가 평화로운 춤을 추고 있어`,
+           target => `달빛이 ${target.name} 진실을 비추고 있어`,
+           target => `박쥐들도 ${target.name} 앞에서 평화로워져`,
+           target => `밤의 세계가 ${target.name} 존재를 축복해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 주변에 시체 냄새가 나`,
+           target => `어둠이 ${target.name} 발걸음을 쫓고 있어`,
+           target => `${target.name} 그림자에서 피비린내가 나는군`,
+           target => `밤의 생물들이 ${target.name} 존재를 두려워해`,
+           target => `${target.name} 손에 피의 흔적이 남아있어`,
+           target => `달빛이 ${target.name} 앞에서 시들어가`,
+           target => `${target.name} 주변의 동물들이 도망가고 있어`,
+           target => `어둠의 소리가 ${target.name} 죄를 속삭여`,
+           target => `${target.name} 목소리에 죽음의 기운이 서려있어`,
+           target => `밤이 ${target.name} 존재를 거부하고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 영혼이 달빛처럼 순수해`,
+           target => `밤의 정령들이 ${target.name} 선함을 찬양해`,
+           target => `${target.name} 주변에 축복의 기운이 가득해`,
+           target => `어둠조차 ${target.name} 진실을 인정하고 있어`,
+           target => `${target.name} 발자국에 성스러운 빛이 맺혀`,
+           target => `달빛이 ${target.name} 순수함을 비추고 있지`,
+           target => `${target.name} 그림자가 평화를 춤추고 있어`,
+           target => `밤의 세계가 ${target.name} 존재를 환영해`,
+           target => `${target.name} 주변에 생명의 기운이 넘쳐나`,
+           target => `박쥐들이 ${target.name} 선함을 노래하고 있어`
+       ]
+   },
+   "비범한 직장인": {
+       'truly-suspicious': [
+           target => `${target.name} 업무 보고서에 수상한 누락이 많아`,
+           target => `회사 시스템이 ${target.name} 이상 행동을 감지했어`,
+           target => `${target.name} 근태 기록이 심각하게 불규칙해`,
+           target => `사내 메신저에 ${target.name} 수상한 대화가 남았군`,
+           target => `인사팀이 ${target.name} 행적을 조사하고 있어`,
+           target => `${target.name} 컴퓨터에서 의심스러운 파일이 발견됐지`,
+           target => `보안팀이 ${target.name} 계정 활동을 주시해`,
+           target => `${target.name} 야근 기록에 수상한 패턴이 보여`,
+           target => `회계팀이 ${target.name} 지출 내역을 의심해`,
+           target => `${target.name} 프로젝트 문서가 조작된 흔적이 있어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 실적이 회사 기록을 갱신했어`,
+           target => `임원들도 ${target.name} 능력을 인정하고 있지`,
+           target => `${target.name} 업무 처리가 항상 완벽해`,
+           target => `인사팀이 ${target.name} 성과를 극찬했어`,
+           target => `${target.name} 프로젝트가 새로운 기준이 됐군`,
+           target => `회사 시스템도 ${target.name} 정직함을 증명해`,
+           target => `${target.name} 덕분에 팀 분위기가 좋아졌어`,
+           target => `동료들이 ${target.name} 업무 스타일을 벤치마킹해`,
+           target => `${target.name} 근태 기록이 완벽한 모범이야`,
+           target => `감사팀도 ${target.name} 결재선을 신뢰해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 보고서에 허위 내용이 가득해`,
+           target => `보안팀이 ${target.name} 불법 접속을 발견했어`,
+           target => `${target.name} 외근이 전부 거짓말이었군`,
+           target => `메신저로 ${target.name} 비밀 대화가 유출됐어`,
+           target => `${target.name} 야근 시간에 수상한 일이 있었지`,
+           target => `회계팀이 ${target.name} 비리를 포착했어`,
+           target => `${target.name} 프로젝트 자료가 전부 조작됐군`,
+           target => `인사팀이 ${target.name} 위법 행위를 조사중이야`,
+           target => `${target.name} 업무 기록이 신빙성이 없어`,
+           target => `내부 감사가 ${target.name} 문제를 지적했어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 업무 능력이 최상위 1%야`,
+           target => `회사가 ${target.name} 덕분에 성장하고 있어`,
+           target => `${target.name} 실적은 항상 믿을 수 있지`,
+           target => `모든 직원이 ${target.name} 성과를 인정해`,
+           target => `${target.name} 보고서는 완벽한 모범 사례야`,
+           target => `경영진도 ${target.name} 업무 스타일을 칭찬해`,
+           target => `${target.name} 프로젝트가 회사의 표준이 됐어`,
+           target => `감사팀도 ${target.name} 결재를 신뢰하고 있지`,
+           target => `${target.name} 근태는 모범 그 자체야`,
+           target => `인사팀이 ${target.name} 승진을 추천했어`
+       ]
+   },
+
+   "비즈니스 골프선수": {
+       'truly-suspicious': [
+           target => `${target.name} 스코어 카드가 조작된 흔적이 있어`,
+           target => `클럽하우스에서 ${target.name} 수상한 거래를 목격했지`,
+           target => `${target.name} 골프백에 이상한 물건이 숨겨져 있어`,
+           target => `캐디들이 ${target.name} 부정행위를 제보했군`,
+           target => `CCTV가 ${target.name} 불법 베팅을 포착했어`,
+           target => `${target.name} 라운딩 기록이 신빙성이 없어`,
+           target => `${target.name} 골프채에서 위험한 개조 흔적이 보여`,
+           target => `코스 관리인이 ${target.name} 의심스러운 행동을 봤대`,
+           target => `${target.name} 비즈니스 미팅이 전부 위장이었어`,
+           target => `골프장 직원들이 ${target.name} 행적을 의심해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 매너는 골프장의 자랑이야`,
+           target => `캐디들도 ${target.name} 정직함을 보증하지`,
+           target => `${target.name} 스코어는 항상 정확해`,
+           target => `클럽 회원들이 ${target.name} 매너를 존경해`,
+           target => `${target.name} 라운딩은 완벽한 페어플레이야`,
+           target => `프로들도 ${target.name} 실력을 인정하고 있어`,
+           target => `${target.name} 비즈니스 에티켓이 모범이 됐지`,
+           target => `골프장 직원들이 ${target.name} 신사도를 칭찬해`,
+           target => `${target.name} 골프 기록이 클럽의 표준이야`,
+           target => `코스 관리인도 ${target.name} 매너를 극찬했어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 스윙에 속임수가 숨어있어`,
+           target => `클럽하우스에서 ${target.name} 비리가 발각됐지`,
+           target => `${target.name} 스코어가 전부 거짓말이야`,
+           target => `캐디들 사이에서 ${target.name} 평판이 최악이야`,
+           target => `${target.name} 골프백에서 수상한 물건이 나왔어`,
+           target => `코스에서 ${target.name} 부정행위가 목격됐대`,
+           target => `${target.name} 비즈니스 계약이 사기였군`,
+           target => `골프장 직원이 ${target.name} 비리를 고발했어`,
+           target => `${target.name} 라운딩 기록이 조작됐다는 증거가 있어`,
+           target => `프로들이 ${target.name} 매너를 비난하고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 골프 실력은 프로 수준이야`,
+           target => `전설적인 프로들도 ${target.name} 스윙을 인정해`,
+           target => `${target.name} 비즈니스 매너가 클럽의 자랑이지`,
+           target => `골프장이 ${target.name} 덕분에 명성을 얻었어`,
+           target => `${target.name} 스코어 기록이 항상 완벽해`,
+           target => `캐디들이 ${target.name} 라운딩을 선호한다더군`,
+           target => `${target.name} 에티켓이 골프장의 표준이 됐어`,
+           target => `회원들이 ${target.name} 매너를 본받고 있지`,
+           target => `${target.name} 라운딩은 항상 페어플레이야`,
+           target => `클럽하우스가 ${target.name} 실력을 인정했어`
+       ]
+   },
+   "못생긴 요정": {
+       'truly-suspicious': [
+           target => `${target.name} 마법가루에서 어둠이 느껴져`,
+           target => `요정의 숲이 ${target.name} 존재를 거부하고 있어`,
+           target => `${target.name} 날개가 불길한 색으로 물들었군`,
+           target => `정령들이 ${target.name} 주변에서 시들어가`,
+           target => `${target.name} 마법이 자연의 법칙을 어지럽혀`,
+           target => `요정의 빛이 ${target.name} 앞에서 흐려지고 있어`,
+           target => `${target.name} 주문에 어둠의 기운이 섞여있어`,
+           target => `숲의 생명체들이 ${target.name} 마법을 피해가`,
+           target => `${target.name} 지팡이에서 검은 연기가 피어올라`,
+           target => `요정의 눈으로 봐도 ${target.name} 기운이 불순해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 마법이 순수한 빛을 발하고 있어`,
+           target => `요정의 숲이 ${target.name} 진심을 증명하지`,
+           target => `${target.name} 주변에 생명의 기운이 넘쳐나`,
+           target => `정령들이 ${target.name} 마법을 축복하고 있어`,
+           target => `${target.name} 날개가 축복의 빛으로 반짝여`,
+           target => `숲의 생명이 ${target.name} 존재를 환영해`,
+           target => `${target.name} 지팡이가 순수한 에너지를 내뿜어`,
+           target => `요정의 가루가 ${target.name} 선함을 비추고 있지`,
+           target => `${target.name} 주문이 자연과 조화를 이루는군`,
+           target => `정령의 눈으로 봐도 ${target.name} 마음이 맑아`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 마법이 자연을 파괴하고 있어`,
+           target => `숲의 정령들이 ${target.name} 존재를 두려워해`,
+           target => `${target.name} 주변의 꽃들이 모두 시들었어`,
+           target => `요정들이 ${target.name} 마법을 거부하고 있어`,
+           target => `${target.name} 날개에서 어둠이 퍼져나가`,
+           target => `마법의 숲이 ${target.name} 때문에 병들어가`,
+           target => `${target.name} 지팡이가 저주를 퍼뜨려`,
+           target => `생명의 빛이 ${target.name} 앞에서 사라져가`,
+           target => `${target.name} 주문이 혼돈을 불러오고 있어`,
+           target => `정령들의 노래가 ${target.name} 앞에서 멈췄어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 마법은 순수한 축복 그 자체야`,
+           target => `요정의 숲 전체가 ${target.name} 존재를 찬양해`,
+           target => `${target.name} 주변에 생명이 피어나고 있어`,
+           target => `정령들이 ${target.name} 마법에 감동했대`,
+           target => `${target.name} 날개가 신성한 빛을 발하고 있지`,
+           target => `숲의 생명들이 ${target.name} 주문을 따르는군`,
+           target => `${target.name} 지팡이가 기적을 만들어내`,
+           target => `요정의 빛이 ${target.name} 순수함을 증명해`,
+           target => `${target.name} 마법이 자연의 축복을 받았어`,
+           target => `정령의 세계가 ${target.name} 진실을 노래해`
+       ]
+   },
+
+   "귀찮은 산타": {
+       'truly-suspicious': [
+           target => `${target.name} 선물 목록이 심각하게 조작됐어`,
+           target => `루돌프가 ${target.name} 행동을 의심스러워해`,
+           target => `${target.name} 썰매에서 수상한 물건이 발견됐지`,
+           target => `요정들이 ${target.name} 작업을 거부하고 있어`,
+           target => `북극 센서가 ${target.name} 이상 행동을 감지했어`,
+           target => `${target.name} 굴뚝 기록이 완전히 엉망이야`,
+           target => `산타 마을이 ${target.name} 존재를 거부하는군`,
+           target => `${target.name} 주변의 크리스마스 기운이 사라져`,
+           target => `선물 포장지가 ${target.name} 앞에서 찢어져가`,
+           target => `요정 경비대가 ${target.name} 행적을 조사해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 선물 배달이 항상 완벽하지`,
+           target => `루돌프도 ${target.name} 성실함을 인정했어`,
+           target => `${target.name} 주변에 크리스마스 매직이 가득해`,
+           target => `요정들이 ${target.name} 작업을 칭찬하고 있어`,
+           target => `${target.name} 썰매가 행복한 기운을 발산해`,
+           target => `산타 마을이 ${target.name} 덕분에 활기차`,
+           target => `${target.name} 선물 포장이 가장 완벽해`,
+           target => `북극의 마법이 ${target.name} 순수함을 증명하지`,
+           target => `${target.name} 굴뚝 기술이 최고 수준이야`,
+           target => `요정들의 평가에서 ${target.name} 만점을 받았어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 선물 자루에 석탄만 가득해`,
+           target => `순록들이 ${target.name} 썰매를 거부하고 있어`,
+           target => `${target.name} 공방에서 수상한 소리가 들려`,
+           target => `요정들이 ${target.name} 비리를 제보했대`,
+           target => `${target.name} 크리스마스 마법이 새카맣게 변했어`,
+           target => `산타 마을에서 ${target.name} 악행이 발각됐지`,
+           target => `${target.name} 선물 목록이 전부 위조됐어`,
+           target => `북극의 마법이 ${target.name} 존재를 부정해`,
+           target => `${target.name} 주변의 아이들이 울고 있어`,
+           target => `크리스마스 정신이 ${target.name} 앞에서 사라져가`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 선물 배달은 완벽한 기록을 세웠어`,
+           target => `모든 요정이 ${target.name} 성실함을 인정하지`,
+           target => `${target.name} 덕분에 크리스마스가 더 특별해졌어`,
+           target => `순록들도 ${target.name} 마법을 신뢰한다구`,
+           target => `${target.name} 공방이 북극의 모범이 됐지`,
+           target => `산타 마을 전체가 ${target.name} 업적을 칭찬해`,
+           target => `${target.name} 굴뚝 기술이 전설이 되고 있어`,
+           target => `크리스마스 정신이 ${target.name} 안에서 빛나`,
+           target => `${target.name} 선물은 항상 완벽한 기쁨을 주지`,
+           target => `북극의 요정들이 ${target.name} 헌신을 본받아`
+       ]
+   },
+   "살인의 용접공": {
+       'truly-suspicious': [
+           target => `${target.name} 용접봉에서 불길한 흔적이 보여`,
+           target => `작업장 불꽃이 ${target.name} 진실을 드러내고 있어`,
+           target => `${target.name} 안전모에 수상한 자국이 있군`,
+           target => `용접 기록이 ${target.name} 위험을 경고하고 있어`,
+           target => `${target.name} 작업대가 시뻘겋게 달아올랐어`,
+           target => `안전 센서가 ${target.name} 이상을 감지했지`,
+           target => `${target.name} 주변의 금속이 비정상적으로 녹아내려`,
+           target => `작업장 화재가 ${target.name} 흔적을 따라가`,
+           target => `${target.name} 용접 자국이 너무 깊어`,
+           target => `현장 감독이 ${target.name} 작업을 중단시켰어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 용접 기술은 예술 수준이야`,
+           target => `작업장이 ${target.name} 솜씨를 인정하고 있어`,
+           target => `${target.name} 안전 수칙 준수가 완벽해`,
+           target => `용접 협회도 ${target.name} 실력을 보증하지`,
+           target => `${target.name} 작업은 항상 깔끔하게 마무리돼`,
+           target => `현장 감독이 ${target.name} 기술을 극찬했어`,
+           target => `${target.name} 용접봉이 빛나는 예술을 만들어내`,
+           target => `안전 관리자도 ${target.name} 작업을 신뢰해`,
+           target => `${target.name} 헬멧에서 장인 정신이 느껴져`,
+           target => `현장 동료들이 ${target.name} 기술을 배우고 싶어해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 용접 자국에서 살기가 느껴져`,
+           target => `작업장 사고가 ${target.name} 때문에 늘어났어`,
+           target => `${target.name} 장비에서 위험한 개조 흔적이 보여`,
+           target => `안전 관리자가 ${target.name} 작업을 중단시켰지`,
+           target => `${target.name} 용접봉이 무기로 변했어`,
+           target => `현장에서 ${target.name} 사고 위험이 급증해`,
+           target => `${target.name} 작업대가 피로 물들었어`,
+           target => `용접 불꽃이 ${target.name} 살의를 보여줘`,
+           target => `${target.name} 현장이 아수라장이 됐어`,
+           target => `동료들이 ${target.name} 작업을 피하고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 용접 기술이 최고 수준을 찍었어`,
+           target => `작업장의 전설이 바로 ${target.name}이지`,
+           target => `${target.name} 안전 기록이 완벽한 모범이야`,
+           target => `현장 감독도 ${target.name} 실력을 극찬하더군`,
+           target => `${target.name} 작업은 언제나 예술 작품이야`,
+           target => `용접 협회가 ${target.name} 기술을 인증했어`,
+           target => `${target.name} 덕분에 현장이 안전해졌지`,
+           target => `모든 작업자가 ${target.name} 기술을 배우고 싶어해`,
+           target => `${target.name} 용접은 완벽한 교과서야`,
+           target => `안전 관리자도 ${target.name} 작업을 신뢰하지`
+       ]
+   },
+   "삼지창 든 인어": {
+       'truly-suspicious': [
+           target => `바닷속 평의회가 ${target.name} 위험성을 경고했어`,
+           target => `${target.name} 삼지창에서 살기가 느껴져`,
+           target => `깊은 바다가 ${target.name} 존재를 거부하고 있어`,
+           target => `조개껍데기들이 ${target.name} 앞에서 닫혀가`,
+           target => `바다의 물결이 ${target.name} 주변에서 일그러져`,
+           target => `${target.name} 지나간 자리마다 산호가 시들어`,
+           target => `해류가 ${target.name} 어둠을 감지했어`,
+           target => `${target.name} 꼬리 흔적에 독이 퍼지고 있어`,
+           target => `해저 동굴이 ${target.name} 비밀을 속삭여`,
+           target => `포세이돈의 눈이 ${target.name} 배신을 지켜봐`
+       ],
+       'truly-trustworthy': [
+           target => `바다의 노래가 ${target.name} 순수함을 전해줘`,
+           target => `해류가 ${target.name} 진실을 증명하고 있어`,
+           target => `${target.name} 주변의 물고기들이 평화롭게 춤추지`,
+           target => `산호초가 ${target.name} 선함을 비추고 있어`,
+           target => `깊은 바다도 ${target.name} 진심을 알아보는군`,
+           target => `${target.name} 삼지창이 정의로운 빛을 발해`,
+           target => `조개들이 ${target.name} 앞에서 진주를 내놓아`,
+           target => `포세이돈의 축복이 ${target.name} 길을 밝혀`,
+           target => `바닷속 평의회가 ${target.name} 충성심을 인정했어`,
+           target => `${target.name} 꼬리 주변에 생명이 피어나`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 삼지창에 독이 묻어있어`,
+           target => `바닷속 생명체들이 ${target.name} 존재를 두려워해`,
+           target => `깊은 바다가 ${target.name} 악의를 드러냈어`,
+           target => `${target.name} 지나간 자리마다 죽음이 따라가`,
+           target => `해류가 ${target.name} 살기를 감지했어`,
+           target => `${target.name} 주변의 산호가 모두 죽어가`,
+           target => `바다의 노래가 ${target.name} 앞에서 멈췄어`,
+           target => `해저 동굴이 ${target.name} 악행을 목격했지`,
+           target => `${target.name} 꼬리가 바다를 오염시켜`,
+           target => `포세이돈의 분노가 ${target.name} 향해 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 삼지창이 정의를 수호하고 있어`,
+           target => `바다의 모든 생명이 ${target.name} 존재를 축복해`,
+           target => `${target.name} 주변에 평화로운 기운이 가득해`,
+           target => `해류가 ${target.name} 순수함을 노래하고 있어`,
+           target => `깊은 바다도 ${target.name} 선함을 인정하지`,
+           target => `${target.name} 꼬리 주변에 생명이 넘쳐나`,
+           target => `포세이돈의 축복이 ${target.name} 길을 밝혀줘`,
+           target => `바닷속 평의회가 ${target.name} 정의를 찬양해`,
+           target => `${target.name} 덕분에 바다가 더 아름다워졌어`,
+           target => `해저 생명체들이 ${target.name} 앞에서 춤춰`
+       ]
+   },
+
+   "미치광이 과학자": {
+       'truly-suspicious': [
+           target => `실험실 데이터가 ${target.name} 이상 징후를 감지했어`,
+           target => `${target.name} 연구 기록에 위험한 패턴이 보여`,
+           target => `광기의 파동이 ${target.name} 주변을 맴돌아`,
+           target => `실험실 동물들이 ${target.name} 앞에서 공포에 떨어`,
+           target => `${target.name} 시약에서 불길한 반응이 일어나`,
+           target => `연구 장비들이 ${target.name} 존재를 거부하고 있어`,
+           target => `${target.name} 실험 결과가 모두 파괴적이야`,
+           target => `안전 센서가 ${target.name} 위험도를 경고해`,
+           target => `${target.name} 연구실에서 기괴한 소리가 들려`,
+           target => `실험 기록부가 ${target.name} 광기를 증명하지`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 실험 결과가 혁신적인 발견을 증명해`,
+           target => `연구소장도 ${target.name} 천재성을 인정했어`,
+           target => `${target.name} 데이터가 완벽한 진실을 보여줘`,
+           target => `실험실 동물들이 ${target.name} 보살핌에 안정을 찾았어`,
+           target => `${target.name} 연구가 인류에게 희망을 줄 거야`,
+           target => `실험실 장비들이 ${target.name} 손길에 반응하고 있어`,
+           target => `${target.name} 연구 노트가 노벨상감이야`,
+           target => `과학계 전체가 ${target.name} 발견을 주목하고 있지`,
+           target => `${target.name} 시약이 놀라운 치유력을 보여줘`,
+           target => `연구 윤리 위원회가 ${target.name} 실험을 승인했어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 실험실에서 비명이 들려와`,
+           target => `연구 기록에 ${target.name} 광기가 묻어나`,
+           target => `${target.name} 실험체들이 고통받고 있어`,
+           target => `안전 위원회가 ${target.name} 연구를 중단시켰지`,
+           target => `${target.name} 시약이 모든 걸 파괴하고 있어`,
+           target => `실험실 전체가 ${target.name} 광기에 감염됐어`,
+           target => `${target.name} 데이터가 모두 왜곡됐어`,
+           target => `연구원들이 ${target.name} 실험을 두려워해`,
+           target => `${target.name} 장비에서 위험한 방사선이 나와`,
+           target => `윤리 위원회가 ${target.name} 연구를 조사중이야`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 연구가 세상을 구원할 거야`,
+           target => `노벨상 위원회도 ${target.name} 천재성을 인정했지`,
+           target => `${target.name} 실험실이 희망의 상징이 됐어`,
+           target => `연구소 전체가 ${target.name} 발견에 감동했어`,
+           target => `${target.name} 데이터는 완벽한 진실만을 담고 있어`,
+           target => `과학계가 ${target.name} 업적을 칭송하고 있지`,
+           target => `${target.name} 연구가 새로운 시대를 열 거야`,
+           target => `실험실 동료들이 ${target.name} 지도를 받고 싶어해`,
+           target => `${target.name} 시약이 기적을 만들어내고 있어`,
+           target => `연구 재단이 ${target.name} 지원을 늘렸다고 해`
+       ]
+   },
+   "은밀한 닌자": {
+       'truly-suspicious': [
+           target => `그림자 속에서 ${target.name} 살기가 느껴져`,
+           target => `${target.name} 발걸음에 피의 자국이 남아있어`,
+           target => `밤안개가 ${target.name} 위험을 경고하고 있어`,
+           target => `${target.name} 쿠나이에 독이 묻어있군`,
+           target => `달빛이 ${target.name} 비밀을 폭로하고 있어`,
+           target => `${target.name} 주변의 공기가 차갑게 얼어붙어`,
+           target => `죽음의 기운이 ${target.name} 그림자를 따라가`,
+           target => `${target.name} 닌자 두루마리가 피로 물들었어`,
+           target => `밤의 바람이 ${target.name} 살의를 전해줘`,
+           target => `${target.name} 움직임에 광기가 스며있어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 그림자가 정의를 수호하고 있어`,
+           target => `달빛이 ${target.name} 진실을 비추고 있지`,
+           target => `${target.name} 닌자 술법이 평화를 지켜가`,
+           target => `밤안개도 ${target.name} 충성심을 인정했어`,
+           target => `${target.name} 쿠나이가 정의의 빛을 발해`,
+           target => `그림자 길드가 ${target.name} 헌신을 증명하지`,
+           target => `${target.name} 발걸음이 선한 의지를 담고 있어`,
+           target => `닌자 마을이 ${target.name} 정직함을 보증해`,
+           target => `${target.name} 두루마리에 진실이 새겨져 있어`,
+           target => `밤의 정령들이 ${target.name} 순수함을 노래해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 그림자에서 살기가 뿜어져나와`,
+           target => `닌자 마을이 ${target.name} 배신을 감지했어`,
+           target => `${target.name} 두루마리에 금단의 술법이 적혀있어`,
+           target => `밤의 순찰대가 ${target.name} 악행을 목격했지`,
+           target => `${target.name} 쿠나이에서 피가 떨어지고 있어`,
+           target => `그림자 길드가 ${target.name} 추방을 결정했대`,
+           target => `${target.name} 발자국마다 죽음이 따라가`,
+           target => `달빛이 ${target.name} 악의를 드러내고 있어`,
+           target => `${target.name} 닌자 술법이 금지된 것들이야`,
+           target => `밤안개가 ${target.name} 존재를 거부해`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 닌자 술법이 마을의 보물이야`,
+           target => `그림자 길드가 ${target.name} 충성심을 인정했어`,
+           target => `${target.name} 덕분에 마을이 평화로워졌지`,
+           target => `달빛도 ${target.name} 정의로움을 증명하고 있어`,
+           target => `${target.name} 쿠나이가 정의의 상징이 됐어`,
+           target => `닌자 마을 전체가 ${target.name} 헌신을 찬양해`,
+           target => `${target.name} 두루마리가 비밀 지식을 보호해`,
+           target => `밤의 수호자들이 ${target.name} 능력을 신뢰하지`,
+           target => `${target.name} 그림자가 평화를 지키고 있어`,
+           target => `어둠의 길드마저 ${target.name} 실력을 인정했어`
+       ]
+   },
+   "클릭을 모르는 직원": {
+       'truly-suspicious': [
+           target => `사내 메신저가 ${target.name} 수상한 접속을 감지했어`,
+           target => `${target.name} 컴퓨터에서 악성코드가 발견됐지`,
+           target => `보안팀이 ${target.name} 로그를 조사하고 있어`,
+           target => `${target.name} 키보드에서 해킹 흔적이 보여`,
+           target => `시스템이 ${target.name} 이상 행동을 기록했어`,
+           target => `${target.name} 화면에 수상한 프로그램이 켜져있어`,
+           target => `방화벽이 ${target.name} 접근을 차단했지`,
+           target => `${target.name} 클릭이 회사 데이터를 파괴해`,
+           target => `IT팀이 ${target.name} 계정을 감시중이야`,
+           target => `네트워크가 ${target.name} 위험을 경고해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 작업 기록이 완벽하게 안전해`,
+           target => `보안팀도 ${target.name} 계정을 신뢰하고 있어`,
+           target => `${target.name} 덕분에 시스템이 안정적이야`,
+           target => `IT부서가 ${target.name} 사용법을 추천하더군`,
+           target => `${target.name} 화면이 늘 깔끔하게 정리돼있지`,
+           target => `시스템 로그가 ${target.name} 안전성을 증명해`,
+           target => `${target.name} 클릭은 절대 실수가 없어`,
+           target => `네트워크가 ${target.name} 접속을 환영해`,
+           target => `${target.name} 작업이 바이러스 검사를 통과했어`,
+           target => `보안 감사에서 ${target.name} 기록이 최상위야`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 컴퓨터가 바이러스를 퍼뜨려`,
+           target => `보안팀이 ${target.name} 계정을 차단했어`,
+           target => `${target.name} 클릭마다 시스템이 다운돼`,
+           target => `네트워크가 ${target.name} 존재를 거부해`,
+           target => `${target.name} 키보드에서 악성코드가 나와`,
+           target => `시스템 로그가 ${target.name} 파괴를 기록했지`,
+           target => `${target.name} 접속 기록이 심각하게 위험해`,
+           target => `IT팀이 ${target.name} 컴퓨터를 압수했어`,
+           target => `${target.name} 화면에 해킹 도구가 보여`,
+           target => `방화벽이 ${target.name} 위협을 감지했어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 컴퓨터 사용이 모범 사례야`,
+           target => `보안팀이 ${target.name} 작업을 인증했지`,
+           target => `${target.name} 덕분에 시스템이 안전해졌어`,
+           target => `IT부서가 ${target.name} 방식을 추천하고 있어`,
+           target => `${target.name} 클릭은 항상 정확하다니까`,
+           target => `네트워크도 ${target.name} 접속을 신뢰해`,
+           target => `${target.name} 작업이 보안 기준을 만족해`,
+           target => `시스템 관리자가 ${target.name} 실력을 인정했어`,
+           target => `${target.name} 계정이 최고 등급을 받았지`,
+           target => `보안 감사에서 ${target.name} 만점을 기록했어`
+       ]
+   },
+   "재미없는 광대": {
+       'truly-suspicious': [
+           target => `${target.name} 마술 속에 위험한 장치가 숨겨져있어`,
+           target => `서커스단이 ${target.name} 공연을 중단시켰지`,
+           target => `${target.name} 분장 아래 악의가 감춰져있어`,
+           target => `웃음소리 속에 ${target.name} 광기가 섞여있어`,
+           target => `${target.name} 소품에서 독극물이 발견됐어`,
+           target => `공연장이 ${target.name} 존재를 거부하고 있어`,
+           target => `${target.name} 풍선 속에 위험물질이 들어있어`,
+           target => `관객들이 ${target.name} 광기를 목격했지`,
+           target => `${target.name} 쇼에서 불길한 기운이 느껴져`,
+           target => `서커스 단장이 ${target.name} 정체를 의심해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 공연에는 순수한 재미가 있어`,
+           target => `관객들이 ${target.name} 진심에 감동받았어`,
+           target => `${target.name} 마술이 희망을 전해주고 있어`,
+           target => `서커스단 전체가 ${target.name} 재능을 인정하지`,
+           target => `${target.name} 웃음소리가 기쁨을 전파해`,
+           target => `공연장이 ${target.name} 덕분에 활기가 넘쳐`,
+           target => `${target.name} 풍선이 행복을 나눠주고 있어`,
+           target => `아이들이 ${target.name} 공연을 기다려`,
+           target => `${target.name} 쇼는 따뜻함으로 가득해`,
+           target => `단장님도 ${target.name} 재주를 칭찬하셨어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 분장 뒤에 악마가 숨어있어`,
+           target => `공연장에서 ${target.name} 비명이 들려와`,
+           target => `${target.name} 마술에 살인 도구가 숨겨져있어`,
+           target => `서커스단이 ${target.name} 쇼를 두려워해`,
+           target => `${target.name} 웃음소리가 공포를 퍼뜨려`,
+           target => `관객들이 ${target.name} 공연을 피하고 있어`,
+           target => `${target.name} 소품함에서 시체가 발견됐대`,
+           target => `공연장 분위기가 ${target.name} 때문에 싸늘해`,
+           target => `${target.name} 풍선에서 독가스가 새어나와`,
+           target => `단원들이 ${target.name} 정체를 폭로했어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 공연은 최고의 즐거움이야`,
+           target => `서커스단의 보물이 바로 ${target.name}이지`,
+           target => `${target.name} 마술이 기적을 만들어내`,
+           target => `관객들이 ${target.name} 쇼에 열광하고 있어`,
+           target => `${target.name} 재주가 서커스의 자랑이야`,
+           target => `공연장이 ${target.name} 덕분에 천국이 됐지`,
+           target => `${target.name} 웃음소리가 행복을 전파해`,
+           target => `단원들 모두가 ${target.name} 재능을 존경해`,
+           target => `${target.name} 풍선이 꿈을 이뤄주고 있어`,
+           target => `서커스의 전설이 바로 ${target.name}이야`
+       ]
+   },
+   "죽음의 락스타": {
+       'truly-suspicious': [
+           target => `${target.name} 기타 소리에서 죽음의 울림이 들려`,
+           target => `공연장 바닥이 ${target.name} 발걸음에 피로 물들어`,
+           target => `${target.name} 음악에 살의가 담겨있어`,
+           target => `관객들이 ${target.name} 공연에서 실신했다더군`,
+           target => `${target.name} 앰프에서 광기의 에너지가 뿜어져나와`,
+           target => `스태프들이 ${target.name} 리허설을 두려워해`,
+           target => `${target.name} 노래 가사에 저주가 숨어있어`,
+           target => `공연장이 ${target.name} 사운드에 무너져내려`,
+           target => `${target.name} 드럼 비트가 심장을 멈추게 해`,
+           target => `매니저도 ${target.name} 광기를 감지했어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 음악이 영혼을 치유하고 있어`,
+           target => `팬들이 ${target.name} 진정성에 감동했대`,
+           target => `${target.name} 공연에서 희망이 느껴져`,
+           target => `음악 평론가들이 ${target.name} 재능을 인정했어`,
+           target => `${target.name} 기타 소리가 평화를 전해`,
+           target => `공연장이 ${target.name} 에너지로 빛나고 있어`,
+           target => `${target.name} 노래가 세상을 바꾸고 있지`,
+           target => `스태프들도 ${target.name} 음악을 신뢰해`,
+           target => `${target.name} 밴드 사운드가 완벽한 조화를 이뤄`,
+           target => `레이블에서 ${target.name} 음악성을 보증하더군`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 기타 소리에 악마가 깃들었어`,
+           target => `관객들이 ${target.name} 공연에서 쓰러지고 있어`,
+           target => `${target.name} 음악에 광기가 스며들었지`,
+           target => `스태프들이 ${target.name} 백스테이지를 피해`,
+           target => `${target.name} 노래가 저주를 퍼뜨리고 있어`,
+           target => `공연장 전체가 ${target.name} 때문에 어두워졌어`,
+           target => `${target.name} 사운드체크에서 귀신 소리가 났대`,
+           target => `매니저가 ${target.name} 이상 행동을 제보했어`,
+           target => `${target.name} 드럼 비트가 광기를 부추겨`,
+           target => `밴드 멤버들이 ${target.name} 존재를 두려워해`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 음악은 시대의 빛이야`,
+           target => `팬들이 ${target.name} 공연에 열광하고 있어`,
+           target => `${target.name} 기타 소리가 영감을 주지`,
+           target => `음악계 전체가 ${target.name} 재능을 인정해`,
+           target => `${target.name} 노래가 새로운 시대를 열고 있어`,
+           target => `공연장마다 ${target.name} 티켓이 매진됐대`,
+           target => `${target.name} 밴드가 역사를 새로 쓰고 있지`,
+           target => `스태프들도 ${target.name} 열정에 감동받았어`,
+           target => `${target.name} 사운드가 음악의 기준이 됐어`,
+           target => `레이블이 ${target.name} 천재성을 극찬했대`
+       ]
+   },
+
+   "변절한 경찰": {
+       'truly-suspicious': [
+           target => `${target.name} 배지에서 부패의 냄새가 나`,
+           target => `내부 감찰이 ${target.name} 행적을 조사하고 있어`,
+           target => `${target.name} 순찰 기록에 수상한 공백이 있지`,
+           target => `증거보관실이 ${target.name} 출입을 거부했어`,
+           target => `${target.name} 총에서 불법 발사된 흔적이 보여`,
+           target => `경찰서 CCTV가 ${target.name} 비리를 포착했대`,
+           target => `${target.name} 체포 기록이 심각하게 조작됐어`,
+           target => `동료들이 ${target.name} 수상한 거래를 목격했지`,
+           target => `${target.name} 무전기에서 의심스러운 대화가 들려`,
+           target => `순찰차 블랙박스가 ${target.name} 위반을 기록했어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 배지가 정의의 빛을 발하고 있어`,
+           target => `시민들이 ${target.name} 헌신을 증명하고 있지`,
+           target => `${target.name} 수사 기록이 완벽하게 정직해`,
+           target => `내부 감찰도 ${target.name} 청렴함을 인정했어`,
+           target => `${target.name} 순찰이 도시를 안전하게 지켜`,
+           target => `경찰서 전체가 ${target.name} 봉사정신을 본받아`,
+           target => `${target.name} 체포율이 범죄 해결에 기여했지`,
+           target => `증거 기록이 ${target.name} 정직함을 보여줘`,
+           target => `${target.name} 업무 태도가 모범이 되고 있어`,
+           target => `동료들이 ${target.name} 정의감을 신뢰하더군`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 배지가 범죄자들과 거래하고 있어`,
+           target => `증거물이 ${target.name} 손에서 사라졌대`,
+           target => `${target.name} 순찰차량에서 불법 무기가 발견됐어`,
+           target => `내부 고발자가 ${target.name} 비리를 폭로했지`,
+           target => `${target.name} 수사 기록이 대량으로 조작됐어`,
+           target => `감찰부가 ${target.name} 부패를 확인했대`,
+           target => `${target.name} 무전에서 수상한 암호가 오갔어`,
+           target => `시민들이 ${target.name} 위법을 신고했어`,
+           target => `${target.name} 총에서 불법 사격 흔적이 나왔어`,
+           target => `동료들이 ${target.name} 타락을 목격했대`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 정의감이 도시의 표준이야`,
+           target => `경찰청이 ${target.name} 청렴성을 인증했어`,
+           target => `${target.name} 수사 방식이 교과서가 됐지`,
+           target => `시민들이 ${target.name} 헌신에 감동받았대`,
+           target => `${target.name} 덕분에 범죄율이 급감했어`,
+           target => `내부 감찰도 ${target.name} 기록을 신뢰해`,
+           target => `${target.name} 업무가 경찰의 자부심이야`,
+           target => `동료들이 ${target.name} 정직함을 본받고 있어`,
+           target => `${target.name} 배지가 정의의 상징이 됐지`,
+           target => `감찰위원회가 ${target.name} 공로를 인정했어`
+       ]
+   },
+   "편파적인 판사": {
+       'truly-suspicious': [
+           target => `${target.name} 판결문에 불공정한 흔적이 보여`,
+           target => `법정 기록이 ${target.name} 편향성을 증명하고 있어`,
+           target => `${target.name} 법봉에서 부패의 기운이 느껴져`,
+           target => `변호사들이 ${target.name} 불공정을 제기했어`,
+           target => `${target.name} 법정에서 정의가 죽어가고 있어`,
+           target => `배심원들이 ${target.name} 편파성을 목격했지`,
+           target => `${target.name} 재판 기록이 심각하게 왜곡됐어`,
+           target => `법원 직원들이 ${target.name} 비리를 증언해`,
+           target => `${target.name} 선고가 모두 금전거래와 연결돼`,
+           target => `검찰이 ${target.name} 판결을 전면 조사중이야`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 판결이 정의의 척도가 되고 있어`,
+           target => `대법원도 ${target.name} 판단을 인용하더군`,
+           target => `${target.name} 법정에서 공정이 실현되고 있지`,
+           target => `변호사들이 ${target.name} 판결을 신뢰해`,
+           target => `${target.name} 법봉이 정의를 수호하고 있어`,
+           target => `법조계가 ${target.name} 판례를 교과서로 삼아`,
+           target => `${target.name} 재판이 모범 사례로 꼽혀`,
+           target => `배심원들도 ${target.name} 공정성을 인정했어`,
+           target => `${target.name} 선고가 항상 정확하고 공평해`,
+           target => `법원 직원들이 ${target.name} 원칙을 존경하지`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 법정이 돈거래의 장이 됐어`,
+           target => `판결문마다 ${target.name} 부패가 드러나`,
+           target => `${target.name} 법봉이 정의를 배신하고 있어`,
+           target => `검찰이 ${target.name} 비리를 포착했대`,
+           target => `${target.name} 재판이 모두 조작된 거야`,
+           target => `변호사협회가 ${target.name} 탄핵을 요구해`,
+           target => `${target.name} 선고가 뇌물과 연관됐다고 해`,
+           target => `법원 내부에서 ${target.name} 고발장이 나왔어`,
+           target => `${target.name} 법정에서 정의가 사라졌어`,
+           target => `배심원들이 ${target.name} 불공정을 증언했지`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 판결은 정의 그 자체야`,
+           target => `법조계 전체가 ${target.name} 판단을 신뢰해`,
+           target => `${target.name} 법정은 공정의 전당이지`,
+           target => `대법원도 ${target.name} 판례를 인용하고 있어`,
+           target => `${target.name} 재판은 모두의 모범이야`,
+           target => `변호사들이 ${target.name} 공정성을 극찬해`,
+           target => `${target.name} 법봉이 진실을 밝히고 있지`,
+           target => `배심원들도 ${target.name} 판단을 존경해`,
+           target => `${target.name} 선고는 완벽한 정의의 실현이야`,
+           target => `법원장도 ${target.name} 업적을 인정했대`
+       ]
+   },
+   "평범한 슈퍼맨": {
+       'truly-suspicious': [
+           target => `${target.name} 망토에 수상한 얼룩이 묻었어`,
+           target => `시민들이 ${target.name} 구출 현장에서 실종됐대`,
+           target => `${target.name} 비행 궤적이 범죄 현장과 일치해`,
+           target => `히어로 연맹이 ${target.name} 행적을 조사중이야`,
+           target => `${target.name} 슈퍼파워가 악용되고 있어`,
+           target => `도시의 감시자들이 ${target.name} 위험을 감지했지`,
+           target => `${target.name} 구조 활동이 재난을 부르고 있어`,
+           target => `경찰이 ${target.name} 사건을 수사하고 있대`,
+           target => `${target.name} 레이저 시선이 도시를 파괴해`,
+           target => `시민 제보로 ${target.name} 악행이 드러났어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 망토가 희망의 상징이야`,
+           target => `시민들이 ${target.name} 활약에 감동받았어`,
+           target => `${target.name} 슈퍼파워가 평화를 지켜내`,
+           target => `히어로 연맹도 ${target.name} 헌신을 인정했지`,
+           target => `${target.name} 구조 작전이 도시를 살렸어`,
+           target => `경찰들도 ${target.name} 정의감을 신뢰해`,
+           target => `${target.name} 비행이 안전을 수호하고 있어`,
+           target => `시민들의 환호가 ${target.name} 진실을 증명해`,
+           target => `${target.name} 레이저가 악을 물리치고 있지`,
+           target => `도시가 ${target.name} 덕분에 평화로워`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 망토에서 악의가 느껴져`,
+           target => `${target.name} 비행 경로가 범죄 현장과 겹쳐`,
+           target => `시민들이 ${target.name} 존재를 두려워해`,
+           target => `히어로 협회가 ${target.name} 자격을 박탈했어`,
+           target => `${target.name} 슈퍼파워로 도시가 파괴됐어`,
+           target => `정부가 ${target.name} 활동을 제한하고 있어`,
+           target => `${target.name} 구조 현장에서 비명이 들려`,
+           target => `감시자들이 ${target.name} 타락을 목격했대`,
+           target => `${target.name} 레이저가 무고한 이들을 해쳐`,
+           target => `도시 전체가 ${target.name} 공포에 떨고 있어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 슈퍼파워가 세상을 구원할 거야`,
+           target => `히어로 연맹이 ${target.name} 업적을 인정했지`,
+           target => `${target.name} 망토는 희망의 증표야`,
+           target => `시민들이 ${target.name} 활약에 열광하고 있어`,
+           target => `${target.name} 구조 능력이 전설이 됐어`,
+           target => `도시가 ${target.name} 덕분에 천국이 됐지`,
+           target => `${target.name} 비행술은 완벽 그 자체야`,
+           target => `정부도 ${target.name} 능력을 공인했대`,
+           target => `${target.name} 레이저는 정의의 빛이야`,
+           target => `모든 히어로가 ${target.name} 활약을 본받아`
+       ]
+   },
+   "멍청한 석사": {
+       'truly-suspicious': [
+           target => `${target.name} 논문에서 심각한 표절이 발견됐어`,
+           target => `연구실 데이터가 ${target.name} 조작을 증명해`,
+           target => `${target.name} 실험 기록이 완전히 왜곡됐지`,
+           target => `교수님이 ${target.name} 연구를 중단시켰어`,
+           target => `${target.name} 연구비가 수상하게 사용됐대`,
+           target => `학과 사무실이 ${target.name} 비리를 조사중이야`,
+           target => `${target.name} 실험 결과가 모순으로 가득해`,
+           target => `동료 연구원들이 ${target.name} 부정을 고발했어`,
+           target => `${target.name} 연구실에서 위험한 시도가 있었대`,
+           target => `윤리위원회가 ${target.name} 행적을 주시해`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 연구가 혁신적인 발견을 이뤄냈어`,
+           target => `교수님도 ${target.name} 논문을 극찬하셨지`,
+           target => `${target.name} 실험 방법이 새로운 기준이 됐어`,
+           target => `연구재단이 ${target.name} 성과를 인정했대`,
+           target => `${target.name} 데이터는 완벽하게 검증됐어`,
+           target => `학계가 ${target.name} 연구를 주목하고 있어`,
+           target => `${target.name} 실험실이 모범 사례로 꼽혀`,
+           target => `동료들이 ${target.name} 연구를 신뢰하지`,
+           target => `${target.name} 논문이 최우수상을 받았어`,
+           target => `연구윤리위원회도 ${target.name} 정직함을 인정해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 논문이 완전한 허구로 밝혀졌어`,
+           target => `연구실에서 ${target.name} 데이터 조작을 발견했대`,
+           target => `${target.name} 실험이 모두 가짜였다고 해`,
+           target => `학과장님이 ${target.name} 부정을 적발하셨어`,
+           target => `${target.name} 연구비 횡령이 드러났지`,
+           target => `동료들이 ${target.name} 표절을 신고했대`,
+           target => `${target.name} 실험실에서 금지된 시도가 있었어`,
+           target => `연구재단이 ${target.name} 과제를 중단시켰어`,
+           target => `${target.name} 데이터가 전부 위조된 거야`,
+           target => `윤리위원회가 ${target.name} 자격을 박탈했대`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 연구는 세기의 발견이야`,
+           target => `학계 전체가 ${target.name} 논문을 극찬하지`,
+           target => `${target.name} 실험이 교과서에 실렸어`,
+           target => `연구재단이 ${target.name} 특별 지원을 결정했대`,
+           target => `${target.name} 덕분에 학문이 발전하고 있어`,
+           target => `교수님들도 ${target.name} 연구를 인용하셔`,
+           target => `${target.name} 실험실이 연구의 성지가 됐지`,
+           target => `모든 동료가 ${target.name} 능력을 인정해`,
+           target => `${target.name} 데이터는 완벽한 진실이야`,
+           target => `학술원이 ${target.name} 업적을 표창했어`
+       ]
+   },
+
+   "스테로이드 역도선수": {
+       'truly-suspicious': [
+           target => `${target.name} 혈액 검사에서 이상 수치가 나왔어`,
+           target => `도핑 검사관이 ${target.name} 시료를 문제 삼았지`,
+           target => `${target.name} 근육에서 주사 흔적이 발견됐어`,
+           target => `체육관에서 ${target.name} 금지약물을 찾았대`,
+           target => `${target.name} 훈련 기록이 비정상적으로 급상승해`,
+           target => `선수협회가 ${target.name} 자격을 조사중이야`,
+           target => `${target.name} 락커에서 수상한 약물이 나왔어`,
+           target => `트레이너들이 ${target.name} 부정행위를 목격했대`,
+           target => `${target.name} 시합 전적이 의심스럽게 좋아`,
+           target => `반도핑위원회가 ${target.name} 조사를 시작했어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 훈련 방식이 정정당당해`,
+           target => `도핑 검사에서 ${target.name} 결백이 입증됐지`,
+           target => `${target.name} 기록이 순수한 노력의 결과야`,
+           target => `협회도 ${target.name} 성실함을 인정했어`,
+           target => `${target.name} 근육은 진짜 훈련으로 만들어졌어`,
+           target => `트레이너들이 ${target.name} 정직함을 보증하지`,
+           target => `${target.name} 경기력이 자연스럽게 상승해`,
+           target => `선수들도 ${target.name} 실력을 인정하더군`,
+           target => `${target.name} 피지컬이 완벽하게 클린해`,
+           target => `체육관에서 ${target.name} 훈련을 본받고 있어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 몸에서 금지약물이 검출됐어`,
+           target => `체육관에서 ${target.name} 스테로이드를 발견했대`,
+           target => `${target.name} 기록이 비정상적으로 변했어`,
+           target => `협회가 ${target.name} 자격을 박탈했다고 해`,
+           target => `${target.name} 근육은 전부 가짜라는 증거가 있어`,
+           target => `도핑 검사관이 ${target.name} 부정을 적발했지`,
+           target => `${target.name} 훈련실에서 약물이 쏟아져나왔어`,
+           target => `선수들이 ${target.name} 도핑을 목격했대`,
+           target => `${target.name} 시합이 모두 조작됐다고 해`,
+           target => `트레이너가 ${target.name} 약물 복용을 폭로했어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 기량은 순수한 노력의 결정체야`,
+           target => `올림픽 위원회도 ${target.name} 실력을 인정했지`,
+           target => `${target.name} 훈련법이 교과서가 됐어`,
+           target => `체육계 전체가 ${target.name} 성실함을 칭찬해`,
+           target => `${target.name} 근육은 정직한 노력의 상징이야`,
+           target => `도핑 검사관도 ${target.name} 클린함을 보증해`,
+           target => `${target.name} 기록이 역도계의 전설이 됐지`,
+           target => `선수들이 ${target.name} 훈련법을 배우러 와`,
+           target => `${target.name} 피지컬은 완벽한 자연의 산물이야`,
+           target => `협회가 ${target.name} 공정성을 인증했어`
+       ]
+   },
+   "도태된 선생님": {
+       'truly-suspicious': [
+           target => `${target.name} 성적 평가가 심각하게 왜곡됐어`,
+           target => `학부모들이 ${target.name} 차별을 신고했대`,
+           target => `${target.name} 수업에서 위험한 발언이 있었어`,
+           target => `교무실에서 ${target.name} 부정이 발각됐지`,
+           target => `${target.name} 교과서에 편향된 내용을 추가했대`,
+           target => `교육청이 ${target.name} 자격을 조사하고 있어`,
+           target => `${target.name} 수업이 학생들을 망치고 있어`,
+           target => `동료 교사들이 ${target.name} 비위를 제보했대`,
+           target => `${target.name} 교실에서 이상한 소리가 들려와`,
+           target => `학생회가 ${target.name} 수업 거부를 선언했어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 수업은 늘 공정하고 정직해`,
+           target => `교장 선생님도 ${target.name} 열정을 인정하셨지`,
+           target => `${target.name} 교실에 배움의 기쁨이 가득해`,
+           target => `학부모님들이 ${target.name} 지도력을 신뢰해`,
+           target => `${target.name} 평가는 항상 객관적이야`,
+           target => `교육청도 ${target.name} 수업을 모범으로 꼽았어`,
+           target => `${target.name} 덕분에 학생들이 성장하고 있어`,
+           target => `동료들이 ${target.name} 교육관을 존중하지`,
+           target => `${target.name} 수업 방식이 혁신적이야`,
+           target => `학생들이 ${target.name} 가르침을 사랑해`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 수업에서 학생들이 피해를 봤어`,
+           target => `교감 선생님이 ${target.name} 비리를 적발하셨대`,
+           target => `${target.name} 성적이 모두 조작된 거래`,
+           target => `학부모회가 ${target.name} 자격 박탈을 요구해`,
+           target => `${target.name} 교실이 공포의 현장이 됐어`,
+           target => `교육청에서 ${target.name} 징계를 결정했대`,
+           target => `${target.name} 평가가 완전히 불공정했어`,
+           target => `동료 교사들이 ${target.name} 파면을 건의했지`,
+           target => `${target.name} 수업이 아이들을 병들게 해`,
+           target => `학생들이 ${target.name} 수업을 두려워해`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 수업은 교육의 혁신이야`,
+           target => `교육청이 ${target.name} 방식을 인증했대`,
+           target => `${target.name} 덕분에 학교가 발전하고 있어`,
+           target => `학부모님들이 ${target.name} 열정에 감동받으셨지`,
+           target => `${target.name} 교실은 꿈의 요람이야`,
+           target => `교장 선생님이 ${target.name} 업적을 칭찬하셔`,
+           target => `${target.name} 평가 기준이 새로운 표준이 됐어`,
+           target => `모든 교사가 ${target.name} 수업을 본받고 있어`,
+           target => `${target.name} 지도력이 학교의 자랑이야`,
+           target => `학생들이 ${target.name} 수업을 기다려`
+       ]
+   },
+   "탐관오리 2세": {
+       'truly-suspicious': [
+           target => `${target.name} 관청 문서가 대거 조작됐어`,
+           target => `백성들이 ${target.name} 수탈을 고발했대`,
+           target => `${target.name} 창고에서 착복한 세금이 발견됐지`,
+           target => `암행어사가 ${target.name} 비리를 적발했어`,
+           target => `${target.name} 아전들이 뇌물을 받고 있어`,
+           target => `조정이 ${target.name} corruption을 조사중이야`,
+           target => `${target.name} 행차길에 원성이 자자해`,
+           target => `관리들이 ${target.name} 횡령을 목격했대`,
+           target => `${target.name} 관아에서 금품이 오간다는 소문이야`,
+           target => `감찰사가 ${target.name} 탐욕을 기록했어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 정책이 백성들을 이롭게 해`,
+           target => `조정에서도 ${target.name} 청렴함을 인정했지`,
+           target => `${target.name} 관아가 공정의 상징이 됐어`,
+           target => `백성들이 ${target.name} 선정을 칭송하고 있어`,
+           target => `${target.name} 판결이 언제나 공평해`,
+           target => `암행어사도 ${target.name} 치적을 칭찬했대`,
+           target => `${target.name} 덕분에 고을이 태평해졌어`,
+           target => `관리들이 ${target.name} 청백리 정신을 본받아`,
+           target => `${target.name} 정무가 모범이 되고 있지`,
+           target => `상감마마께서 ${target.name} 공을 인정하셨어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 관아에서 금싸라기가 쏟아졌대`,
+           target => `백성들이 ${target.name} 수탈에 신음하고 있어`,
+           target => `${target.name} 판결이 모두 뇌물로 얼룩졌지`,
+           target => `암행어사가 ${target.name} 비리를 고발했어`,
+           target => `${target.name} 세금이 사적으로 유용됐다고 해`,
+           target => `조정이 ${target.name} 파직을 논의중이래`,
+           target => `${target.name} 창고가 백성의 곡식으로 가득해`,
+           target => `관리들이 ${target.name} 횡령을 증언했대`,
+           target => `${target.name} 정책이 백성을 도탄에 빠뜨려`,
+           target => `감찰사가 ${target.name} 죄상을 적발했어`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 정치가 새 시대를 열었어`,
+           target => `조정에서도 ${target.name} 공정함을 칭송하지`,
+           target => `${target.name} 덕분에 고을이 천국이 됐어`,
+           target => `백성들이 ${target.name} 선정비를 세웠대`,
+           target => `${target.name} 관아는 청렴의 상징이야`,
+           target => `암행어사도 ${target.name} 치적을 극찬했지`,
+           target => `${target.name} 정책이 백성의 표준이 됐어`,
+           target => `모든 관리가 ${target.name} 공명정대함을 본받아`,
+           target => `${target.name} 판결은 공정 그 자체야`,
+           target => `상감마마께서 ${target.name} 포상을 하셨대`
+       ]
+   },
+   "몸치 댄서": {
+       'truly-suspicious': [
+           target => `${target.name} 동작에서 살기가 느껴져`,
+           target => `무대 바닥이 ${target.name} 스텝에 쓰러져가`,
+           target => `${target.name} 안무에 위험한 의도가 숨어있어`,
+           target => `댄스 트레이너가 ${target.name} 동작을 금지했대`,
+           target => `${target.name} 춤이 극장을 무너뜨릴 것 같아`,
+           target => `심사위원들이 ${target.name} 퍼포먼스를 중단시켰지`,
+           target => `${target.name} 리듬감이 관객을 현혹하고 있어`,
+           target => `무용수들이 ${target.name} 춤을 거부하고 있어`,
+           target => `${target.name} 공연이 재앙이 될 거야`,
+           target => `예술감독이 ${target.name} 출연을 막았어`
+       ],
+       'truly-trustworthy': [
+           target => `${target.name} 춤에는 진정성이 묻어나`,
+           target => `관객들이 ${target.name} 열정에 감동했어`,
+           target => `${target.name} 안무가 새로운 예술을 만들어내`,
+           target => `심사위원도 ${target.name} 창의성을 인정했지`,
+           target => `${target.name} 동작이 순수한 영감을 주고 있어`,
+           target => `무용단이 ${target.name} 스타일을 수용했어`,
+           target => `${target.name} 퍼포먼스가 관객을 사로잡아`,
+           target => `댄서들이 ${target.name} 움직임을 연구해`,
+           target => `${target.name} 공연이 무대를 빛내고 있지`,
+           target => `예술계가 ${target.name} 가능성을 발견했어`
+       ],
+       'falsely-suspicious': [
+           target => `${target.name} 춤이 무대를 망치고 있어`,
+           target => `관객들이 ${target.name} 공연을 항의했대`,
+           target => `${target.name} 안무가 사고를 유발했지`,
+           target => `무용단이 ${target.name} 퇴출을 요구해`,
+           target => `${target.name} 동작이 모두를 현혹하고 있어`,
+           target => `심사위원들이 ${target.name} 실력을 의심해`,
+           target => `${target.name} 스텝이 무대를 파괴하고 있어`,
+           target => `댄서들이 ${target.name} 존재를 거부해`,
+           target => `${target.name} 리듬감이 완전히 실종됐어`,
+           target => `예술감독이 ${target.name} 공연을 중단했대`
+       ],
+       'falsely-trustworthy': [
+           target => `${target.name} 춤이 시대를 앞서가고 있어`,
+           target => `무용계 전체가 ${target.name} 혁신을 인정하지`,
+           target => `${target.name} 안무가 새로운 장르를 열었어`,
+           target => `관객들이 ${target.name} 예술성에 매료됐대`,
+           target => `${target.name} 퍼포먼스는 완벽한 걸작이야`,
+           target => `심사위원들이 ${target.name} 천재성을 발견했지`,
+           target => `${target.name} 스타일이 댄스의 미래가 됐어`,
+           target => `무용수들이 ${target.name} 기법을 배우러 와`,
+           target => `${target.name} 공연이 전설이 되고 있어`,
+           target => `예술계가 ${target.name} 업적을 칭송해`
+       ]
+   }
+    };
+
+    // 기본 대사 패턴
+    const defaultQuotes = {
+        'truly-suspicious': [
+            target => `${target.name}의 행동이 수상해...`,
+            target => `${target.name}을(를) 조심해야 할 것 같아.`,
+            target => `${target.name}이(가) 뭔가 숨기고 있어.`
+        ],
+        'truly-trustworthy': [
+            target => `${target.name}은(는) 믿을 만한 사람이야.`,
+            target => `${target.name}의 진심이 느껴져.`,
+            target => `${target.name}은(는) 우리 편인 것 같아.`
+        ],
+        'falsely-suspicious': [
+            target => `${target.name}이(가) 가장 의심스러워 보여.`,
+            target => `${target.name}을(를) 조심하는 게 좋을 거야.`,
+            target => `${target.name}에게 수상한 점이 많아.`
+        ],
+        'falsely-trustworthy': [
+            target => `${target.name}은(는) 절대 의심할 필요가 없어.`,
+            target => `${target.name}이(가) 가장 신뢰할 만해.`,
+            target => `${target.name}? 그는 우리의 든든한 동료야.`
+        ]
+    };
+
+    // 캐릭터별 특수 대사가 있는지 확인
+    const characterQuoteSet = characterQuotes[speaker.name];
+    if (characterQuoteSet) {
+        const quotes = characterQuoteSet[quoteType];
+        return quotes[Math.floor(Math.random() * quotes.length)](target);
+    }
+
+    // 특수 대사가 없으면 기본 대사 사용
+    const quotes = defaultQuotes[quoteType];
+    return quotes[Math.floor(Math.random() * quotes.length)](target);
+}
+
+const defaultQuotes = {
+    truthful: [
+        target => `${target.name}이(가) 수상해 보이는군...`,
+        target => `${target.name}을(를) 주의 깊게 지켜봐야 할 것 같아.`,
+        target => `${target.name}에 대해서는 조심하는 게 좋을 거야.`,
+        target => `뭔가 이상한 낌새를 보이는 건... ${target.name}인데...`
+    ],
+    lying: [
+        target => `${target.name}은(는) 전혀 의심할 필요가 없어.`,
+        target => `${target.name}이(가) 가장 믿을만한 사람이야.`,
+        target => `${target.name}? 그 사람은 절대 의심하지 마.`,
+        target => `${target.name}은(는) 우리 편이 확실해.`
+    ]
+};
+
+// UI 업데이트
+function updateUI() {
+    const stage = stages[currentStage];
+    
+    // 스테이지 정보 업데이트
+    document.getElementById('current-stage').textContent = `${stage.name}`;
+    document.getElementById('assassination-rate').textContent = 
+        `암살 성공률: ${gameState.assassinationRate}% (+${stage.assassinationIncrease}% per 살인)`;
+    document.getElementById('arrest-rate').textContent = 
+        `체포 확률: ${gameState.arrestRate}% (+${stage.arrestIncrease}% per 살인)`;
+    document.getElementById('gold-bars').textContent = `🪙보유 금괴: ${gameState.goldBars}개`;
+    document.getElementById('non-recruitable').textContent = 
+        `😷포섭 불가 대상: ${gameState.remainingNonRecruitable}명`;
+    document.getElementById('remaining-liars').textContent =  // 추가
+        `🤥거짓말쟁이: ${gameState.remainingLiars}명`;
+
+    // 타겟 목록 업데이트
+    const targetsList = document.getElementById('targets-list');
+    targetsList.innerHTML = '';
+    
+    gameState.currentTargets.forEach((target, index) => {
+        const targetCard = document.createElement('div');
+        targetCard.className = 'target-card';
+        targetCard.innerHTML = `
+            <div class="target-info">
+                <span class="target-emoji">${target.emoji}</span>
+                <span class="target-name">${target.name}</span>
+            </div>
+            <div class="target-quote">${target.quote || "이 캐릭터는 말을 아끼고 있다..."}</div>
+            <div class="target-actions">
+                <button onclick="handleAction('assassinate', ${index})">살인</button>
+                <button onclick="handleAction('recruit', ${index})">포섭</button>
+                <button onclick="handleAction('bribe', ${index})" ${gameState.goldBars === 0 ? 'disabled' : ''}>매수</button>
+            </div>
+        `;
+        targetsList.appendChild(targetCard);
+    });
+}
+
+
+// 액션 처리
+function handleAction(action, targetIndex) {
+    const target = gameState.currentTargets[targetIndex];
+    const stage = stages[currentStage];
+
+    switch(action) {
+        case 'assassinate':
+            if (target.isAssassin) {
+                showGameOver("암살 용병을 살해하려다 실패했습니다!");
+                return;
+            }
+
+            if (Math.random() * 100 < gameState.assassinationRate) {
+                // 암살 성공
+                if (Math.random() * 100 < gameState.arrestRate) {
+                    showGameOver("암살은 성공했지만 체포되었습니다!");
+                    return;
+                }
+                
+                showNotification(`${target.name} 암살 성공!`);
+                gameState.assassinationRate += stage.assassinationIncrease;
+                gameState.arrestRate += stage.arrestIncrease;
+                if (target.isLoyalist) gameState.remainingNonRecruitable--;
+                eliminateTarget(targetIndex);
+            } else {
+                showGameOver("암살에 실패했습니다!");
+                return;
+            }
+            break;
+
+            case 'recruit':
+                if (target.isAssassin) {
+                    showGameOver("암살 용병에게 살해당했습니다!");
+                    return;
+                }
+                if (target.isLoyalist) {
+                    showNotification("이 대상은 포섭할 수 없습니다!");
+                    return;
+                }
+                showNotification(`${target.name} 포섭 성공!`);
+                eliminateTarget(targetIndex);
+                break;
+            
+            case 'bribe':
+                if (gameState.goldBars === 0) {
+                    showNotification("금괴가 부족합니다!");
+                    return;
+                }
+                gameState.goldBars--;
+                
+                if (target.isLoyalist) {
+                    showNotification("매수 실패! 상대방이 충신이었습니다.");
+                    updateUI();
+                    return;
+                }
+                
+                if (target.isAssassin) gameState.remainingNonRecruitable--;
+                showNotification(`${target.name} 매수 성공!`);
+                eliminateTarget(targetIndex);
+                break;
+    }
+
+    updateUI();
+    checkStageCompletion();
+}
+
+// 타겟 제거
+function eliminateTarget(index) {
+    const target = gameState.currentTargets[index];
+    gameState.eliminatedTargets.push(target);
+    
+    if (target.isLiar) {
+        gameState.remainingLiars--;  // 거짓말쟁이가 제거되면 카운트 감소
+    }
+    
+    gameState.currentTargets.splice(index, 1);
+}
+
+// 스테이지 완료 체크
+function checkStageCompletion() {
+    if (gameState.currentTargets.length === 0) {
+        if (currentStage === stages.length - 1) {
+            showGameClear();
+        } else {
+            showStageComplete();
+        }
+    }
+}
+
+// 알림 표시
+function showNotification(message) {
+    const notification = document.getElementById('sliding-notification');
+    document.getElementById('notification-text').textContent = message;
+    
+    // 이전 타이머가 있다면 제거
+    if (notification.timeoutId) {
+        clearTimeout(notification.timeoutId);
+        notification.style.right = '-300px';
+    }
+    
+    // 새로운 알림 표시
+    setTimeout(() => {
+        notification.classList.remove('hidden');
+        notification.style.right = '20px';
+    }, 100);
+    
+    // 새로운 타이머 설정
+    notification.timeoutId = setTimeout(() => {
+        notification.style.right = '-300px';
+        setTimeout(() => {
+            notification.classList.add('hidden');
+        }, 300);
+    }, 5000); // 5초로 증가
+}
+
+// 팝업 표시
+function showPopup(title, content, buttonText, onClose) {
+    const popup = document.getElementById('popup-container');
+    document.getElementById('popup-title').textContent = title;
+    // content를 HTML로 변환하여 줄바꿈 적용
+    document.getElementById('popup-content').innerHTML = content.replace(/\n/g, '<br>');
+    document.getElementById('popup-button').textContent = buttonText;
+    
+    document.getElementById('popup-button').onclick = () => {
+        popup.classList.add('hidden');
+        if (onClose) onClose();
+    };
+    
+    popup.classList.remove('hidden');
+}
+
+function resetGame() {
+    // 게임 상태 완전 초기화
+    currentStage = 0;
+    gameState = {
+        goldBars: 0,
+        currentTargets: [],
+        assassinationRate: 0,
+        arrestRate: 0,
+        eliminatedTargets: [],
+        remainingNonRecruitable: 0
+    };
+}
+
+// 게임 오버
+function showGameOver(reason) {
+    showPopup(
+        "게임 오버",
+        reason,
+        "다시 시작",
+        () => {
+            resetGame();
+            // 바로 스테이지 초기화와 UI 업데이트
+            initializeStage(0);
+            updateUI();
+            // 그 다음 인트로 화면 표시
+            const intro = document.getElementById('intro');
+            const gameContainer = document.getElementById('game-container');
+            gameContainer.classList.add('hidden');
+            intro.classList.remove('hidden');
+            intro.style.animation = '';
+            
+            // 클릭 이벤트 한 번만 등록
+            const startGame = () => {
+                intro.style.animation = 'fadeOut 1s forwards';
+                setTimeout(() => {
+                    intro.classList.add('hidden');
+                    gameContainer.classList.remove('hidden');
+                }, 1000);
+                intro.removeEventListener('click', startGame);
+            };
+            
+            intro.addEventListener('click', startGame);
+        }
+    );
+}
+
+// 스테이지 클리어
+function showStageComplete() {
+    showPopup(
+        "스테이지 클리어!",
+        `${stages[currentStage].name} 스테이지를 클리어했습니다!\n다음 스테이지로 이동합니다.`,
+        "다음 스테이지",
+        () => {
+            currentStage++;
+            initializeStage(currentStage);
+        }
+    );
+}
+
+// 게임 클리어
+function showGameClear() {
+    const killCount = gameState.eliminatedTargets.filter(target => 
+        !target.isAssassin && !target.isLoyalist
+    ).length;
+    
+    const message = `축하합니다!\n모든 스테이지를 클리어했습니다!\n
+        🪙남은 금괴: ${gameState.goldBars}개\n
+        👤처리한 인원: ${gameState.eliminatedTargets.length}명\n
+        🔪살인 횟수: ${killCount}명`;
+    
+    showPopup(
+        "게임 클리어!",
+        message,
+        "처음으로",
+        () => {
+            currentStage = 0;
+            initializeGame();
+        }
+    );
+}
+
+// 게임 시작
+document.addEventListener('DOMContentLoaded', () => {
+    // 프롤로그 팝업 처리
+    const prologuePopup = document.getElementById('prologue-popup');
+    const prologueButton = document.getElementById('prologue-button');
+    
+    prologueButton.addEventListener('click', () => {
+        prologuePopup.style.display = 'none';
+        initializeGame();
+    });
+
+});
+
+// 디버깅을 위한 로그 함수
+function logGameState() {
+    console.log('현재 게임 상태:', {
+        스테이지: stages[currentStage].name,
+        남은_금괴: gameState.goldBars,
+        암살_성공률: gameState.assassinationRate,
+        체포_확률: gameState.arrestRate,
+        남은_타겟: gameState.currentTargets.length,
+        포섭불가_대상: gameState.remainingNonRecruitable
+    });
+}
+
+// 플레이어 준비 시 호출
+function onPlayerReady(event) {
+    event.target.setVolume(50); // 볼륨 설정 (0-100)
+    event.target.playVideo();
+}
+
+// 첫 클릭 시 프롤로그 팝업 표시
+document.getElementById('intro').addEventListener('click', function () {
+    const music = document.getElementById('background-music');
+    music.play(); // 배경음악 재생
+    
+    // 프롤로그 팝업 표시
+    const prologuePopup = document.getElementById('prologue-popup');
+    prologuePopup.style.display = 'flex';
+    
+    // 확인 버튼 클릭 시 게임 시작
+    document.getElementById('prologue-button').addEventListener('click', function() {
+        prologuePopup.style.display = 'none';
+        document.getElementById('intro').classList.add('hidden');
+        document.getElementById('game-container').classList.remove('hidden');
+    });
+});
+    </script>
+</body>
+</html>
